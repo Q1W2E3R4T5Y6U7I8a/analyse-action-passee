@@ -1,0 +1,189 @@
+.statistics-page {
+  max-width: 2000px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  .card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-title {
+    color: #1e293b;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-subtitle {
+    color: #64748b;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .charts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 1.5rem;
+  }
+
+  .chart-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .chart-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    min-width: 800px;
+    width: 100%;
+
+    .chart-title {
+      color: #334155;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      font-weight: bold;
+    }
+
+    .chart-container {
+      height: 500px;
+      width: 100%;
+    }
+  }
+
+  .insights-container {
+    margin-top: 2rem;
+  }
+
+  .insights-column {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .insight-type {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+
+    &.victories-column {
+      border-left: 4px solid #10b981;
+    }
+
+    &.losses-column {
+      border-left: 4px solid #dc2626;
+    }
+
+    &.insights-column {
+      border-left: 4px solid #f59e0b;
+    }
+  }
+
+  .insights-title {
+    color: #000;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: bold;
+  }
+
+  .insights-list {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  .insight-item {
+    position: relative;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+
+    .insight-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .insight-date {
+      font-weight: 600;
+      color: #000;
+      font-size: 1.1rem;
+    }
+
+    .insight-content {
+      color: #000;
+      font-size: 1rem;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #dc2626;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0 0.5rem;
+      line-height: 1;
+      transition: transform 0.2s;
+
+      &:hover {
+        transform: scale(1.2);
+      }
+    }
+
+    .delete-confirmation {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: #fff;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+
+      button {
+        padding: 0.25rem 0.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+
+        &:first-of-type {
+          background: #dc2626;
+          color: white;
+        }
+
+        &:last-of-type {
+          background: #e2e8f0;
+          color: #334155;
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+
+    .empty-message {
+      color: #64748b;
+    }
+  }
+}
