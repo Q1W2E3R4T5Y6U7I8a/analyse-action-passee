@@ -3,6 +3,7 @@ import DailyEntry from './components/DailyEntry';
 import GoalTracker from './components/GoalTracker';
 import Statistics from './components/Statistics';
 import './App.scss';
+import Dreams from './components/Dreams'; 
 
 function App() {
   const [page, setPage] = useState('daily');
@@ -32,10 +33,18 @@ function App() {
             <span className="nav-icon">📊</span>
             <span className="nav-text">Statistics</span>
           </button>
+          <button 
+            onClick={() => setPage('dreams')}
+            className={`nav-button ${page === 'dreams' ? 'active' : ''}`}
+          >
+            <span className="nav-icon">✨</span>
+            <span className="nav-text">Dreams</span>
+          </button>
         </div>
       </nav>
 
       <main className="main-content">
+        {page === 'dreams' && <Dreams />}
         {page === 'daily' && <DailyEntry />}
         {page === 'goals' && <GoalTracker />}
         {page === 'stats' && <Statistics />}

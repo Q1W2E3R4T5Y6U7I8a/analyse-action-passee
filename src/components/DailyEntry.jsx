@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, subDays } from 'date-fns';
 import './DailyEntry.scss';
+import { loadData, saveData } from '../services/dataService';
 
 const initialState = {
   date: format(new Date(), 'dd/MM/yyyy'),
@@ -8,6 +9,11 @@ const initialState = {
   productivity: null,
   happiness: null,
   pomodoros: 0,
+  pomodorosHistory: {
+    '30': 0,
+    '45': 0,
+    '60': 0
+  },
   energy: {
     air: null,
     fire: null,
@@ -16,31 +22,69 @@ const initialState = {
   },
   victory: '',
   loss: '',
-  insight: ''
+  insight: '',
+  activePomodoro: null,
+  pomodoroDuration: 30,
+  todos: [
+    { id: 1, text: '', completed: false },
+    { id: 2, text: '', completed: false },
+    { id: 3, text: '', completed: false },
+  ]
 };
 
 export default function DailyEntry() {
   const [entry, setEntry] = useState(initialState);
   const [history, setHistory] = useState([]);
-
+  const [timer, setTimer] = useState(null);
+  const [isPomodoroActive, setIsPomodoroActive] = useState(false);
+  const [audio, setAudio] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('daily-log')) || [];
+    const saved = loadData();
     setHistory(saved);
     
     const prevDate = format(subDays(new Date(), 1), 'dd/MM/yyyy');
     const prevEntry = saved.find(e => e.date === prevDate);
+    const todayEntry = saved.find(e => e.date === format(new Date(), 'dd/MM/yyyy'));
     
-    if (prevEntry) {
+    if (todayEntry) {
+      setEntry(todayEntry);
+    } else if (prevEntry) {
       setEntry({
         ...initialState,
         date: format(new Date(), 'dd/MM/yyyy'),
         efficiency: prevEntry.efficiency,
         productivity: prevEntry.productivity,
         happiness: prevEntry.happiness,
-        energy: { ...prevEntry.energy }
+        energy: { ...prevEntry.energy },
+        victory: prevEntry.victory || '',
+        loss: prevEntry.loss || '',
+        insight: prevEntry.insight || '',
+        pomodorosHistory: prevEntry.pomodorosHistory || initialState.pomodorosHistory
       });
     }
-  }, []);
+  }, []); // Removed the duplicate useEffect
+  
+  useEffect(() => {
+    let countdown;
+    
+    if (timer !== null && timer > 0) {
+      countdown = setInterval(() => {
+        setTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(countdown);
+            handlePomodoroEnd();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  
+    return () => {
+      if (countdown) clearInterval(countdown);
+    };
+  }, [timer, isPomodoroActive]);  
 
   const handleChange = (key, value) => {
     setEntry(prev => ({ ...prev, [key]: value }));
@@ -58,29 +102,39 @@ export default function DailyEntry() {
       alert('Please fill all metrics (efficiency, productivity, happiness)');
       return;
     }
-
+  
+    if (!entry.victory.trim()) {
+      alert('Victories field is required! Please note at least one positive thing from your day.');
+      return;
+    }
+  
     const existingIndex = history.findIndex(e => e.date === entry.date);
     const updated = [...history];
-    
+  
     if (existingIndex >= 0) {
       updated[existingIndex] = entry;
-      alert('Existing entry updated successfully!');
+      alert('Entry updated successfully!');
     } else {
       updated.push(entry);
       alert('New entry saved successfully!');
     }
-
-    setHistory(updated);
-    localStorage.setItem('daily-log', JSON.stringify(updated));
-    
-    setEntry({
-      ...initialState,
-      date: format(new Date(), 'dd/MM/yyyy'),
-      efficiency: entry.efficiency,
-      productivity: entry.productivity,
-      happiness: entry.happiness,
-      energy: { ...entry.energy }
-    });
+  
+    if (saveData(updated)) {
+      setHistory(updated);
+      setEntry(prev => ({
+        ...initialState,
+        date: format(new Date(), 'dd/MM/yyyy'),
+        efficiency: prev.efficiency,
+        productivity: prev.productivity,
+        happiness: prev.happiness,
+        energy: { ...prev.energy },
+        victory: prev.victory,
+        loss: prev.loss,
+        insight: prev.insight,
+        pomodorosHistory: { ...prev.pomodorosHistory },
+        todos: prev.todos 
+      }));
+    }
   };
 
   const getMetricColor = (value) => {
@@ -95,10 +149,76 @@ export default function DailyEntry() {
     handleChange('date', `${day}/${month}/${year}`);
   };
 
+  const startPomodoro = (duration) => {
+    setIsPomodoroActive(true);
+    setEntry(prev => ({
+      ...prev,
+      pomodoroDuration: duration
+    }));
+    setTimer(duration * 60);
+  };
+
+  const handlePomodoroEnd = () => {
+    const duration = entry.pomodoroDuration.toString();
+  
+    setEntry(prev => ({
+      ...prev,
+      pomodoros: (prev.pomodoros || 0) + 1, // Fallback for pomodoros
+      pomodorosHistory: {
+        ...prev.pomodorosHistory, // Ensure pomodorosHistory exists
+        [duration]: (prev.pomodorosHistory?.[duration] || 0) + 1 // Fallback for specific duration
+      }
+    }));
+  
+    if (!isMuted) {
+      const randomTrack = Math.floor(Math.random() * 3) + 1;
+      const newAudio = new Audio(`/timer_music_${randomTrack}.mp3`);
+      newAudio.play();
+      setAudio(newAudio);
+    }
+  
+    setIsPomodoroActive(false);
+    setTimer(null);
+  };
+
+  const toggleMute = () => {
+    if (audio) {
+      if (isMuted) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    }
+    setIsMuted(!isMuted);
+  };
+
+  const cancelPomodoro = () => {
+    setIsPomodoroActive(false);
+    setTimer(null);
+    if (audio) {
+      audio.pause();
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleTodoChange = (id, key, value) => {
+    setEntry(prev => ({
+      ...prev,
+      todos: prev.todos.map(todo => 
+        todo.id === id ? { ...todo, [key]: value } : todo
+      )
+    }));
+  };
+  
+
   return (
     <div className="daily-entry">
       <div className="card">
-        {/* Date Section - Full width at top */}
         <div className="section-box date-section">
           <h2 className="section-title">Daily Journal</h2>
           <div className="date-container">
@@ -111,9 +231,7 @@ export default function DailyEntry() {
           </div>
         </div>
 
-        {/* Bottom Section - 3 equal width boxes */}
         <div className="bottom-section">
-          {/* Metrics Section */}
           <div className="section-box metrics-section">
             <h3 className="section-subtitle">Performance Metrics</h3>
             <div className="metrics-grid">
@@ -147,14 +265,13 @@ export default function DailyEntry() {
                   type="number" 
                   min="0" 
                   value={entry.pomodoros} 
-                  onChange={e => handleChange('pomodoros', +e.target.value)} 
+                  onChange={e => handleChange('pomodoros', +e.target.value)}
                   className="pomodoros-input"
                 />
               </div>
             </div>
           </div>
 
-          {/* Energy Section */}
           <div className="section-box energy-section">
             <h3 className="section-subtitle">Energy Levels</h3>
             <div className="energy-grid">
@@ -179,22 +296,22 @@ export default function DailyEntry() {
             </div>
           </div>
 
-          {/* Insights Section */}
           <div className="section-box insights-section">
             <h3 className="section-subtitle">Daily Reflections</h3>
             <div className="insights-grid">
               <div className="insight-card victory-card">
-                <label className="input-label">✅ Victories</label>
+                <label className="input-label"> ❌✅ Victories / Losses <span className="required">*</span></label>
                 <textarea 
                   value={entry.victory} 
                   onChange={e => handleChange('victory', e.target.value)} 
                   placeholder="What went well today?"
                   className="insight-textarea"
                   rows="4"
+                  required
                 />
               </div>
               <div className="insight-card loss-card">
-                <label className="input-label">❌ Losses</label>
+                <label className="input-label">💤 Dreams</label>
                 <textarea 
                   value={entry.loss} 
                   onChange={e => handleChange('loss', e.target.value)} 
@@ -213,13 +330,105 @@ export default function DailyEntry() {
                   rows="4"
                 />
               </div>
+              
             </div>
+            
           </div>
+          <div className="section-box todos-section">
+              <h3 className="section-subtitle">Daily Tasks</h3>
+              <div className="todos-grid">
+                {(entry.todos || []).map((todo) => ( // Fallback to an empty array
+                  <div 
+                    key={todo.id} 
+                    className={`todo-card ${todo.completed ? 'completed' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={todo.completed}
+                      onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
+                      className="todo-checkbox"
+                    />
+                    <input
+                      type="text"
+                      value={todo.text}
+                      onChange={(e) => handleTodoChange(todo.id, 'text', e.target.value)}
+                      placeholder="Enter a task..."
+                      className="todo-input"
+                    />
+                    {todo.completed && (
+                      <span className="completed-icon">✓</span>
+                    )}
+                  </div>
+                ))}
+                <button 
+                  className="add-todo-button"
+                  onClick={() => {
+                    setEntry(prev => ({
+                      ...prev,
+                      todos: [
+                        ...(prev.todos || []), // Ensure todos is an array
+                        { id: Date.now(), text: '', completed: false }
+                      ]
+                    }));
+                  }}
+                >
+                  + Add Task
+                </button>
+              </div>
+            </div>
         </div>
 
         <button className="save-button" onClick={saveEntry}>
           Save Daily Entry
         </button>
+
+        <div className="pomodoro-section">
+          <div className="pomodoro-timer">
+            {isPomodoroActive ? (
+              <div className="pomodoro-active">
+                <div className="timer-display">
+                  <span className="time">{formatTime(timer)}</span>
+                  <span className="label">remaining</span>
+                </div>
+                <div className="pomodoro-controls">
+                  <button className="cancel-button" onClick={cancelPomodoro}>
+                    Cancel
+                  </button>
+                  <button 
+                    className={`mute-button ${isMuted ? 'muted' : ''}`} 
+                    onClick={toggleMute}
+                  >
+                    {isMuted ? '🔇' : '🔊'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="pomodoro-setup">
+                <h3 className="pomodoro-title">Start Pomodoro Session</h3>
+                <div className="duration-buttons">
+                  <button 
+                    className="duration-button" 
+                    onClick={() => startPomodoro(30)}
+                  >
+                    30 min
+                  </button>
+                  <button 
+                    className="duration-button" 
+                    onClick={() => startPomodoro(45)}
+                  >
+                    45 min
+                  </button>
+                  <button 
+                    className="duration-button" 
+                    onClick={() => startPomodoro(60)}
+                  >
+                    60 min
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

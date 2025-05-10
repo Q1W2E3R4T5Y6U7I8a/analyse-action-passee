@@ -1,0 +1,40 @@
+[
+  {
+    "date": "03/05/2025",
+    "efficiency": 88,
+    "productivity": 81,
+    "happiness": 67,
+    "pomodoros": 8,
+    "energy": {
+      "air": 57,
+      "fire": 52,
+      "water": 52,
+      "earth": 80
+    },
+    "victory": "J`ai fait beacoup du codage et tres bien",
+    "loss": "-",
+    "insight": ""
+  },
+  {
+    "date": "04/05/2025",
+    "efficiency": 44,
+    "productivity": 41,
+    "happiness": 84,
+    "pomodoros": 7,
+    "pomodorosHistory": {
+      "30": 1,
+      "60": 1
+    },
+    "energy": {
+      "air": 30,
+      "fire": 38,
+      "water": 54,
+      "earth": 56
+    },
+    "victory": "-Transfer du PC, 1pom\n-DUMY 4 pom\n-bain\n-putain écrire au moins 1,2 pomodoros\n-Pas du porn, regarde Atack sur Titan, faire l'emprovements pour APD, livre et pas du Instagram\n\nDEMAIN\n-Demander si ton web site pour le cour français va bien\n-Achete l`Or et lire le\n-Etudie jusq`a 14, mais pour le vrai, il fait que tu passerai examen bien\n-Apres études, aller chez COSM pour donner à traduition\n-DUMY web, fini si possible ou 6+ pomodoros\n-putain écrire au moins 1,2 pomodoros",
+    "loss": "Je suis si putain dependant...\nSi j`ai été dans Burger King, j'arriverait à faire x2,3 des pomodoros\nMais franchement, je me sent plus heureux comme ça, peut être si je compte ça comme jour relaxant ça bien, même dependance, si je faire 12 pomodoro efficas\nPutain, j'ai essayé à écrire, mais je n'ai pas reussire...",
+    "insight": "1. je croyais que pour l`instant c`est vraiment important, pour s'étudier. Et probablement je vais reste ici, en particulier si il fait à payer 100CHF pour aller là, quand j'aura 3 mile il va avoir plus du sens mais même la, je perderai du 1 au 4 mois et même si j'ariverais aujourd'hui, je ne pourrait juste prendee ça avec moi.\nMais au contraire, il est pas evident si PC va marche avec cette internet di tout.\nMais oui... C'est les problemes du gens pavres, overthinking si simple decision.\nEvidement avec nouvelle pc je pourrait\nJOUER À JOUES DE VIDEO\nTRAVAILLER SUR DUMY PLUS EFFICASE, AVOIR SERVER CHEZ MOI\nACHETE 3EME LAPTOP ET FAIRE DU CONNERY SUR DARK WEB, CRYPTO, JE POURRAIT LE FAIRE MÊME MAINTENANT MAIS GTO POURRAIT ÊTRE SI EFFICASE SUR CETTE ORD\nSENTIR SUPERIEUR, LOL\nFaire du trading pour le vrai ou mine crypto\n2. Pour l`instant je suis vraiment mauvaise écrivant, j'ai beeacoup d'ides sur l'amour, l'age adult et YHULIANSTVO mais j'attend, mais maintenant il n'ai pas du raise d'attendre",
+    "activePomodoro": null,
+    "pomodoroDuration": 30
+  }
+]

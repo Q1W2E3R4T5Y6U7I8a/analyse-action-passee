@@ -1,7 +1,11 @@
 .statistics-page {
+  background-color: #e5e4db;
   max-width: 2000px;
   margin: 0 auto;
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   .card {
     background: #ffffff;
@@ -9,18 +13,22 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     padding: 1.5rem;
     margin-bottom: 1.5rem;
+    width: 90%;
+    max-width: 1400px;
   }
 
   .section-title {
     color: #1e293b;
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
+    text-align: center;
   }
 
   .section-subtitle {
     color: #64748b;
     font-size: 1rem;
     margin-bottom: 1rem;
+    text-align: center;
   }
 
   .charts-container {
@@ -28,11 +36,15 @@
     flex-direction: column;
     gap: 2rem;
     margin-top: 1.5rem;
+    width: 100%;
+    align-items: center;
   }
 
   .chart-wrapper {
     width: 100%;
     overflow-x: auto;
+    display: flex;
+    justify-content: center;
   }
 
   .chart-card {
@@ -41,30 +53,38 @@
     padding: 1.5rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border: 1px solid #f0f0f0;
-    min-width: 800px;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 
     .chart-title {
       color: #334155;
       font-size: 1.5rem;
       margin-bottom: 1rem;
       font-weight: bold;
+      text-align: center;
     }
 
     .chart-container {
       height: 500px;
-      width: 100%;
+      width: 95%;
     }
   }
 
   .insights-container {
     margin-top: 2rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   .insights-column {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
+    width: 100%;
+    max-width: 1400px;
   }
 
   .insight-type {
@@ -78,7 +98,7 @@
       border-left: 4px solid #10b981;
     }
 
-    &.losses-column {
+    &.dreams-column {
       border-left: 4px solid #dc2626;
     }
 
@@ -94,6 +114,7 @@
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #e2e8f0;
     font-weight: bold;
+    text-align: center;
   }
 
   .insights-list {
@@ -186,4 +207,37 @@
       color: #64748b;
     }
   }
+
+  .data-actions {
+    padding-top: 30px;
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+    width: 100%;
+
+    button, .import-button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      background: #3b82f6;
+      color: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #2563eb;
+      }
+    }
+
+    .import-button {
+      display: inline-block;
+    }
+  }
+}
+
+.insight-item ul li.completed {
+  text-decoration: line-through;
+  color: #94a3b8;
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { loadData, deleteEntry, exportToJSON, importFromJSON } from '../services/dataService';
 import { Line, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -33,20 +34,34 @@ export default function Statistics() {
   }, []);
 
   const loadHistory = () => {
-    const saved = JSON.parse(localStorage.getItem('daily-log')) || [];
-    const sortedHistory = saved.sort((a, b) => {
-      const [dayA, monthA, yearA] = a.date.split('/');
-      const [dayB, monthB, yearB] = b.date.split('/');
-      return new Date(`${yearA}-${monthA}-${dayA}`) - new Date(`${yearB}-${monthB}-${dayB}`);
-    });
-    setHistory(sortedHistory);
+    setHistory(loadData());
   };
 
   const handleDeleteEntry = (dateToDelete) => {
-    const updatedHistory = history.filter(entry => entry.date !== dateToDelete);
-    localStorage.setItem('daily-log', JSON.stringify(updatedHistory));
-    loadHistory();
-    setConfirmDelete(null);
+    const updatedHistory = deleteEntry(dateToDelete);
+    if (updatedHistory) {
+      setHistory(updatedHistory);
+      setConfirmDelete(null);
+    }
+  };
+
+  const handleExport = () => {
+    exportToJSON();
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      importFromJSON(file)
+        .then(data => {
+          setHistory(data);
+          alert('Data imported successfully!');
+        })
+        .catch(error => {
+          console.error('Import error:', error);
+          alert('Failed to import data. Please check the file format.');
+        });
+    }
   };
 
   const formatDate = (dateString) => {
@@ -132,7 +147,7 @@ export default function Statistics() {
         max: 30,
         title: {
           display: true,
-          text: 'Count',
+          text: 'Minutes', // optional
           color: '#000',
           font: {
             size: 16,
@@ -144,6 +159,9 @@ export default function Statistics() {
           font: {
             size: 14,
             weight: 'bold'
+          },
+          callback: function(value) {
+            return value; // <- removes any percentage formatting
           }
         }
       },
@@ -161,13 +179,18 @@ export default function Statistics() {
       }
     }
   };
+  
 
   return (
+
+    
     <div className="statistics-page">
       <div className="charts-container">
         <div className="chart-wrapper">
+
+        
+
           <div className="chart-card">
-            <h3 className="chart-title">Core Metrics</h3>
             <div className="chart-container">
               <Line 
                 data={{
@@ -204,7 +227,6 @@ export default function Statistics() {
 
         <div className="chart-wrapper">
           <div className="chart-card">
-            <h3 className="chart-title">Pomodoros Completed</h3>
             <div className="chart-container">
               <Bar 
                 data={{
@@ -224,7 +246,6 @@ export default function Statistics() {
 
         <div className="chart-wrapper">
           <div className="chart-card">
-            <h3 className="chart-title">Energy Levels</h3>
             <div className="chart-container">
               <Line 
                 data={{
@@ -296,8 +317,8 @@ export default function Statistics() {
             </div>
           </div>
 
-          <div className="insight-type losses-column">
-            <h3 className="insights-title">❌ Losses</h3>
+          <div className="insight-type dreams-column">
+            <h3 className="insights-title"> 💤 Dreams</h3>
             <div className="insights-list">
               {history.filter(e => e.loss).map((entry, i) => (
                 <div key={i} className="insight-item">
@@ -349,8 +370,57 @@ export default function Statistics() {
               ))}
             </div>
           </div>
+          <div className="insight-type todos-column">
+            <h3 className="insights-title">📝 Todos</h3>
+            <div className="insights-list">
+              {history.filter(e => e.todos && e.todos.length > 0).map((entry, i) => (
+                <div key={i} className="insight-item">
+                  <div className="insight-header">
+                    <div className="insight-date">{formatDate(entry.date)}</div>
+                    <button 
+                      className="delete-btn"
+                      onClick={() => setConfirmDelete(entry.date)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="insight-content">
+                    <ul>
+                      {entry.todos.map((todo, j) => (
+                        <li key={j} className={todo.completed ? 'completed' : ''}>
+                          {todo.text || 'Untitled Task'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {confirmDelete === entry.date && (
+                    <div className="delete-confirmation">
+                      <p>Delete this entry?</p>
+                      <button onClick={() => handleDeleteEntry(entry.date)}>Yes</button>
+                      <button onClick={() => setConfirmDelete(null)}>No</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+      <div className="data-actions">
+          <button onClick={handleExport} className="export-button">
+            Export to JSON
+          </button>
+          <label className="import-button">
+            Import from JSON
+            <input 
+              type="file" 
+              accept=".json" 
+              onChange={handleImport} 
+              style={{ display: 'none' }} 
+            />
+          </label>
+        </div>
     </div>
+    
   );
 }

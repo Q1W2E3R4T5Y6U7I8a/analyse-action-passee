@@ -1,0 +1,125 @@
+.dreams-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: #333;
+  
+    .dreams-header {
+      text-align: center;
+      margin-bottom: 2rem;
+  
+      h1 {
+        font-size: 2.5rem;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+      }
+  
+      p {
+        font-size: 1.1rem;
+        color: #64748b;
+      }
+    }
+  
+    .dreams-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+  
+      @media (max-width: 1200px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+  
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+  
+    .dream-column {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  
+      h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+        color: #1e293b;
+        text-align: center;
+      }
+    }
+  
+    .past-achievements {
+      border-top: 4px solid #10b981;
+    }
+  
+    .dream-list {
+      max-height: calc(100vh - 300px);
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+  
+    .dream-card {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+      cursor: pointer;
+  
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+  
+      &.completed {
+        background-color: #f0fdf4;
+        border-color: #10b981;
+        .status-toggle {
+          background-color: #10b981;
+          color: white;
+        }
+      }
+    }
+  
+    .dream-date {
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+  
+    .dream-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+  
+    .dream-content {
+      p {
+        margin: 0.3rem 0;
+        line-height: 1.5;
+      }
+    }
+  
+    .status-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: #e2e8f0;
+      color: #64748b;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.2s ease;
+  
+      &:hover {
+        background-color: #cbd5e1;
+      }
+    }
+  }
