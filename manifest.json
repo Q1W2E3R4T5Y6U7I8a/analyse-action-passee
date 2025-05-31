@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "APD",
+  "name": "APD (analise of past doings/аналіз проведеної дії)",
   "icons": [
     {
       "src": "favicon.ico",
