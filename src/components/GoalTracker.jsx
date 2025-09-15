@@ -10,6 +10,38 @@ export default function GoalTracker() {
   });
   const [newTask, setNewTask] = useState('');
 
+  const exportGoalsToJson = () => {
+  const jsonString = JSON.stringify(goals, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'goal-tracker-data.json';
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const importGoalsFromJson = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    try {
+      const importedGoals = JSON.parse(event.target.result);
+      if (typeof importedGoals === 'object' && importedGoals !== null) {
+        setGoals(importedGoals);
+      } else {
+        alert('Invalid JSON format');
+      }
+    } catch {
+      alert('Error parsing JSON file');
+    }
+  };
+  reader.readAsText(file);
+};
+
+
   useEffect(() => {
     localStorage.setItem('calendar-goals', JSON.stringify(goals));
   }, [goals]);
@@ -92,7 +124,16 @@ export default function GoalTracker() {
     const dayGoals = goals[dateStr] || { tasks: [], note: '' };
 
     return (
+       
       <div className="selected-day-view">
+        <button onClick={exportGoalsToJson}>Export Goals to JSON</button>
+          <input 
+            type="file" 
+            accept="application/json" 
+            onChange={importGoalsFromJson} 
+            style={{ marginLeft: '1rem' }}
+          />
+        
         <h2 className="selected-day-title">{format(currentDate, 'EEEE, MMMM d, yyyy')}</h2>
         
         <div className="tasks-container">

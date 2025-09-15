@@ -1,11 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { format, subDays } from 'date-fns';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { format, subDays, addDays, parse } from 'date-fns';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import './DailyEntry.scss';
 import { loadData, saveData } from '../services/dataService';
 
 const initialState = {
   date: format(new Date(), 'dd/MM/yyyy'),
   efficiency: null,
+  habits: [
+    {
+      id: 1,
+      text: 'Exercise',
+      completedByDate: {
+        'dd/MM/yyyy': true,
+        '29/07/2025': false,
+      }
+    },
+    {
+      id: 2,
+      text: 'Meditation',
+      completedByDate: {
+        'dd/MM/yyyy': true,
+        '29/07/2025': false,
+      }
+    },
+  ],
   productivity: null,
   happiness: null,
   pomodoros: 0,
@@ -26,10 +45,41 @@ const initialState = {
   activePomodoro: null,
   pomodoroDuration: 30,
   todos: [
-    { id: 1, text: '', completed: false },
-    { id: 2, text: '', completed: false },
-    { id: 3, text: '', completed: false },
-  ]
+    { id: 1, text: 'Complete project proposal', completed: false },
+    { id: 2, text: 'Schedule team meeting', completed: false },
+    { id: 3, text: 'Review client feedback', completed: false },
+  ],
+  mostImportantTask: ''
+};
+
+const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus }) => {
+  const textareaRef = useRef(null);
+  
+  const adjustHeight = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, []);
+  
+  useEffect(() => {
+    adjustHeight();
+    if (autoFocus && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [adjustHeight, autoFocus, value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={className}
+      onInput={adjustHeight}
+      rows={1}
+    />
+  );
 };
 
 export default function DailyEntry() {
@@ -39,14 +89,72 @@ export default function DailyEntry() {
   const [isPomodoroActive, setIsPomodoroActive] = useState(false);
   const [audio, setAudio] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [newTodoId, setNewTodoId] = useState(null);
+
+  const changeDateBy = useCallback((days) => {
+    const parsedDate = parse(entry.date, 'dd/MM/yyyy', new Date());
+    const newDate = format(addDays(parsedDate, days), 'dd/MM/yyyy');
+
+    const prevEntry = history.find(e => e.date === entry.date);
+    const found = history.find(e => e.date === newDate);
+
+    const copiedHabits = prevEntry?.habits?.map(h => ({
+      ...h,
+      completedByDate: {
+        ...h.completedByDate,
+        [newDate]: h.completedByDate?.[newDate] ?? false
+      }
+    })) || [];
+
+    const copiedTodos = prevEntry?.todos || initialState.todos;
+
+    setEntry(found
+      ? {
+          ...found,
+          habits: copiedHabits.length ? copiedHabits : found.habits || [],
+          todos: found.todos || copiedTodos,
+          mostImportantTask: found.mostImportantTask ?? prevEntry?.mostImportantTask ?? ''
+        }
+      : {
+          ...initialState,
+          date: newDate,
+          habits: copiedHabits,
+          todos: copiedTodos,
+          mostImportantTask: prevEntry?.mostImportantTask ?? ''
+        }
+    );
+  }, [entry.date, history]);
+
+  // Auto-save whenever entry changes
+  useEffect(() => {
+    const saveTimer = setTimeout(() => {
+      if (entry.date) {
+        const existingIndex = history.findIndex(e => e.date === entry.date);
+        const updated = [...history];
+        
+        if (existingIndex >= 0) {
+          updated[existingIndex] = entry;
+        } else {
+          updated.push(entry);
+        }
+        
+        saveData(updated);
+        setHistory(updated);
+      }
+    }, 500);
+    
+    return () => clearTimeout(saveTimer);
+  }, [entry, history]);
+
+  // Load saved data
   useEffect(() => {
     const saved = loadData();
-    setHistory(saved);
-    
+    setHistory(saved || []);
+
     const prevDate = format(subDays(new Date(), 1), 'dd/MM/yyyy');
-    const prevEntry = saved.find(e => e.date === prevDate);
-    const todayEntry = saved.find(e => e.date === format(new Date(), 'dd/MM/yyyy'));
-    
+    const prevEntry = saved?.find(e => e.date === prevDate);
+    const todayEntry = saved?.find(e => e.date === format(new Date(), 'dd/MM/yyyy'));
+
     if (todayEntry) {
       setEntry(todayEntry);
     } else if (prevEntry) {
@@ -60,11 +168,20 @@ export default function DailyEntry() {
         victory: prevEntry.victory || '',
         loss: prevEntry.loss || '',
         insight: prevEntry.insight || '',
-        pomodorosHistory: prevEntry.pomodorosHistory || initialState.pomodorosHistory
+        pomodorosHistory: prevEntry.pomodorosHistory || initialState.pomodorosHistory,
+        habits: prevEntry.habits?.map(h => ({
+          ...h,
+          completedByDate: {
+            ...h.completedByDate,
+            [format(new Date(), 'dd/MM/yyyy')]: false
+          }
+        })) || initialState.habits,
+        todos: prevEntry.todos || initialState.todos
       });
     }
-  }, []); // Removed the duplicate useEffect
-  
+  }, []);
+
+  // Pomodoro timer effect
   useEffect(() => {
     let countdown;
     
@@ -84,7 +201,16 @@ export default function DailyEntry() {
     return () => {
       if (countdown) clearInterval(countdown);
     };
-  }, [timer, isPomodoroActive]);  
+  }, [timer, isPomodoroActive]);
+
+  // Audio cleanup
+  useEffect(() => {
+    return () => {
+      if (audio) {
+        audio.pause();
+      }
+    };
+  }, [audio]);
 
   const handleChange = (key, value) => {
     setEntry(prev => ({ ...prev, [key]: value }));
@@ -95,46 +221,6 @@ export default function DailyEntry() {
       ...prev,
       energy: { ...prev.energy, [key]: value }
     }));
-  };
-
-  const saveEntry = () => {
-    if (entry.efficiency === null || entry.productivity === null || entry.happiness === null) {
-      alert('Please fill all metrics (efficiency, productivity, happiness)');
-      return;
-    }
-  
-    if (!entry.victory.trim()) {
-      alert('Victories field is required! Please note at least one positive thing from your day.');
-      return;
-    }
-  
-    const existingIndex = history.findIndex(e => e.date === entry.date);
-    const updated = [...history];
-  
-    if (existingIndex >= 0) {
-      updated[existingIndex] = entry;
-      alert('Entry updated successfully!');
-    } else {
-      updated.push(entry);
-      alert('New entry saved successfully!');
-    }
-  
-    if (saveData(updated)) {
-      setHistory(updated);
-      setEntry(prev => ({
-        ...initialState,
-        date: format(new Date(), 'dd/MM/yyyy'),
-        efficiency: prev.efficiency,
-        productivity: prev.productivity,
-        happiness: prev.happiness,
-        energy: { ...prev.energy },
-        victory: prev.victory,
-        loss: prev.loss,
-        insight: prev.insight,
-        pomodorosHistory: { ...prev.pomodorosHistory },
-        todos: prev.todos 
-      }));
-    }
   };
 
   const getMetricColor = (value) => {
@@ -163,10 +249,10 @@ export default function DailyEntry() {
   
     setEntry(prev => ({
       ...prev,
-      pomodoros: (prev.pomodoros || 0) + 1, // Fallback for pomodoros
+      pomodoros: (prev.pomodoros || 0) + 1,
       pomodorosHistory: {
-        ...prev.pomodorosHistory, // Ensure pomodorosHistory exists
-        [duration]: (prev.pomodorosHistory?.[duration] || 0) + 1 // Fallback for specific duration
+        ...prev.pomodorosHistory,
+        [duration]: (prev.pomodorosHistory?.[duration] || 0) + 1
       }
     }));
   
@@ -191,6 +277,84 @@ export default function DailyEntry() {
     }
     setIsMuted(!isMuted);
   };
+  //#POMODORO
+  const [customTimeLeft, setCustomTimeLeft] = useState(60 * 60); // 60 minutes in seconds
+  const [isCustomPomodoroActive, setIsCustomPomodoroActive] = useState(false);
+  const [customTimerEndTime, setCustomTimerEndTime] = useState(null);
+  const customTimerRef = useRef(null);
+   const startCustomPomodoro = () => {
+    setIsCustomPomodoroActive(true);
+    const endTime = Date.now() + 60 * 60 * 1000; // 60 minutes from now
+    setCustomTimerEndTime(endTime);
+    setCustomTimeLeft(60 * 60);
+    
+    // Start the timer
+    customTimerRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+      setCustomTimeLeft(remaining);
+      
+      // Update tab title with time remaining
+      document.title = `${formatTime(remaining)} - Pomodoro Timer`;
+      
+      if (remaining === 0) {
+        handleCustomPomodoroEnd();
+      }
+    }, 1000);
+  };
+  
+  const tracks = [
+    "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_1.mp3",
+  "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_2.mp3",
+  "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_3.mp3",
+  "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_4.mp3",
+  "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_5.mp3"
+];
+
+const handleCustomPomodoroEnd = () => {
+  clearInterval(customTimerRef.current);
+  setIsCustomPomodoroActive(false);
+
+  // Reset tab title
+  document.title = 'Daily Entry';
+
+  if (!isMuted) {
+        const randomTrack = Math.floor(Math.random() * tracks.length);
+    const newAudio = new Audio(tracks[randomTrack]);
+    newAudio.play();
+    setAudio(newAudio);
+  }
+};
+
+   const cancelCustomPomodoro = () => {
+    clearInterval(customTimerRef.current);
+    setIsCustomPomodoroActive(false);
+    setCustomTimeLeft(60 * 60);
+    
+    // Reset tab title
+    document.title = 'Daily Entry';
+    
+    if (audio) {
+      audio.pause();
+    }
+  };
+  
+  // Add this useEffect to handle tab visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isCustomPomodoroActive && customTimerEndTime) {
+        // Recalculate time left when tab becomes visible again
+        const remaining = Math.max(0, Math.floor((customTimerEndTime - Date.now()) / 1000));
+        setCustomTimeLeft(remaining);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isCustomPomodoroActive, customTimerEndTime]);
+  //##################
 
   const cancelPomodoro = () => {
     setIsPomodoroActive(false);
@@ -214,24 +378,110 @@ export default function DailyEntry() {
       )
     }));
   };
-  
+
+  const addNewTodo = () => {
+    const newId = Date.now();
+    setNewTodoId(newId);
+    setEntry(prev => ({
+      ...prev,
+      todos: [
+        ...prev.todos,
+        { id: newId, text: '', completed: false }
+      ]
+    }));
+  };
+
+  const deleteTodo = (id) => {
+    setEntry(prev => ({
+      ...prev,
+      todos: prev.todos.filter(todo => todo.id !== id)
+    }));
+  };
+
+  const deleteHabit = (id) => {
+    setEntry(prev => ({
+      ...prev,
+      habits: prev.habits.filter(habit => habit.id !== id)
+    }));
+  };
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(entry.todos);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    setEntry(prev => ({
+      ...prev,
+      todos: items
+    }));
+  };
+
+  const moveTodo = (id, direction) => {
+    const todos = [...entry.todos];
+    const index = todos.findIndex(todo => todo.id === id);
+    
+    if ((direction === 'up' && index > 0) || 
+        (direction === 'down' && index < todos.length - 1)) {
+      const newIndex = direction === 'up' ? index - 1 : index + 1;
+      
+      [todos[index], todos[newIndex]] = [todos[newIndex], todos[index]];
+      
+      setEntry(prev => ({
+        ...prev,
+        todos
+      }));
+    }
+  };
 
   return (
     <div className="daily-entry">
+      <div className="custom-pomodoro-timer">
+        {isCustomPomodoroActive ? (
+          <>
+            <div className="timer-display">{formatTime(customTimeLeft)}</div>
+            <button onClick={cancelCustomPomodoro} className="cancel-pomodoro">
+              Cancel
+            </button>
+            <button onClick={toggleMute} className="mute-button">
+              {isMuted ? '🔇' : '🔊'}
+            </button>
+          </>
+        ) : (
+          <button onClick={startCustomPomodoro} className="start-pomodoro">
+            Start 60m Pomodoro
+          </button>
+        )}
+      </div>
       <div className="card">
         <div className="section-box date-section">
-          <h2 className="section-title">Daily Journal</h2>
-          <div className="date-container">
+          <div className="date-controls">
+            <button type="button" onClick={() => changeDateBy(-1)}>&larr; Yesterday</button>
             <input 
-              type="date" 
-              value={entry.date.split('/').reverse().join('-')} 
+              type="date"
+              value={entry.date.split('/').reverse().join('-')}
               onChange={handleDateChange}
               className="date-picker"
             />
+            <button type="button" onClick={() => changeDateBy(1)}>Tomorrow &rarr;</button>
           </div>
+
+          {isPomodoroActive && (
+            <div className="pomodoro-timer">
+              <div className="timer-display">{formatTime(timer)}</div>
+              <button onClick={cancelPomodoro} className="cancel-pomodoro">
+                Cancel
+              </button>
+              <button onClick={toggleMute} className="mute-button">
+                {isMuted ? '🔇' : '🔊'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="bottom-section">
+          
           <div className="section-box metrics-section">
             <h3 className="section-subtitle">Performance Metrics</h3>
             <div className="metrics-grid">
@@ -259,6 +509,7 @@ export default function DailyEntry() {
                   </div>
                 </div>
               ))}
+
               <div className="metric-card pomodoros-card">
                 <label className="input-label">Pomodoros Completed</label>
                 <input 
@@ -306,7 +557,7 @@ export default function DailyEntry() {
                   onChange={e => handleChange('victory', e.target.value)} 
                   placeholder="What went well today?"
                   className="insight-textarea"
-                  rows="4"
+                  rows="6"
                   required
                 />
               </div>
@@ -317,7 +568,7 @@ export default function DailyEntry() {
                   onChange={e => handleChange('loss', e.target.value)} 
                   placeholder="What could be improved?"
                   className="insight-textarea"
-                  rows="4"
+                  rows="6"
                 />
               </div>
               <div className="insight-card insight-card">
@@ -327,108 +578,183 @@ export default function DailyEntry() {
                   onChange={e => handleChange('insight', e.target.value)} 
                   placeholder="Did you learn something today?"
                   className="insight-textarea"
-                  rows="4"
+                  rows="6"
                 />
               </div>
-              
             </div>
-            
           </div>
+          
           <div className="section-box todos-section">
-              <h3 className="section-subtitle">Daily Tasks</h3>
-              <div className="todos-grid">
-                {(entry.todos || []).map((todo) => ( // Fallback to an empty array
+            <h3 className="section-subtitle">Daily Tasks</h3>
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="todos">
+                {(provided) => (
                   <div 
-                    key={todo.id} 
-                    className={`todo-card ${todo.completed ? 'completed' : ''}`}
+                    className="todos-grid"
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
                   >
-                    <input
-                      type="checkbox"
-                      checked={todo.completed}
-                      onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
-                      className="todo-checkbox"
-                    />
-                    <input
-                      type="text"
-                      value={todo.text}
-                      onChange={(e) => handleTodoChange(todo.id, 'text', e.target.value)}
-                      placeholder="Enter a task..."
-                      className="todo-input"
-                    />
-                    {todo.completed && (
-                      <span className="completed-icon">✓</span>
-                    )}
+                    {entry.todos.map((todo, index) => (
+                      <Draggable key={todo.id} draggableId={todo.id.toString()} index={index}>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={`todo-card ${todo.completed ? 'completed' : ''}`}
+                            style={{
+                              ...provided.draggableProps.style,
+                              zIndex: entry.todos.length - index,
+                              minHeight: '60px'
+                            }}
+                          >
+                            <div className="todo-drag-handle" {...provided.dragHandleProps}>
+                              ≡
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={todo.completed}
+                              onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
+                              className="todo-checkbox"
+                            />
+                            <AutoResizeTextarea
+                              value={todo.text}
+                              onChange={(e) => handleTodoChange(todo.id, 'text', e.target.value)}
+                              placeholder="Enter a task..."
+                              className="todo-input"
+                              autoFocus={todo.id === newTodoId}
+                            />
+                            <div className="todo-priority-buttons">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveTodo(todo.id, 'up');
+                                }}
+                                disabled={index === 0}
+                                className="priority-button"
+                              >
+                                ↑
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveTodo(todo.id, 'down');
+                                }}
+                                disabled={index === entry.todos.length - 1}
+                                className="priority-button"
+                              >
+                                ↓
+                              </button>
+                            </div>
+                            <button 
+                              className="delete-todo"
+                              onClick={() => deleteTodo(todo.id)}
+                            >
+                              ×
+                            </button>
+                            {todo.completed && (
+                              <span className="completed-icon">✓</span>
+                            )}
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                    <button 
+                      className="add-todo-button"
+                      onClick={addNewTodo}
+                    >
+                      + Add Task
+                    </button>
                   </div>
-                ))}
-                <button 
-                  className="add-todo-button"
-                  onClick={() => {
-                    setEntry(prev => ({
-                      ...prev,
-                      todos: [
-                        ...(prev.todos || []), // Ensure todos is an array
-                        { id: Date.now(), text: '', completed: false }
-                      ]
-                    }));
-                  }}
-                >
-                  + Add Task
-                </button>
-              </div>
-            </div>
-        </div>
-
-        <button className="save-button" onClick={saveEntry}>
-          Save Daily Entry
-        </button>
-
-        <div className="pomodoro-section">
-          <div className="pomodoro-timer">
-            {isPomodoroActive ? (
-              <div className="pomodoro-active">
-                <div className="timer-display">
-                  <span className="time">{formatTime(timer)}</span>
-                  <span className="label">remaining</span>
-                </div>
-                <div className="pomodoro-controls">
-                  <button className="cancel-button" onClick={cancelPomodoro}>
-                    Cancel
-                  </button>
-                  <button 
-                    className={`mute-button ${isMuted ? 'muted' : ''}`} 
-                    onClick={toggleMute}
-                  >
-                    {isMuted ? '🔇' : '🔊'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="pomodoro-setup">
-                <h3 className="pomodoro-title">Start Pomodoro Session</h3>
-                <div className="duration-buttons">
-                  <button 
-                    className="duration-button" 
-                    onClick={() => startPomodoro(30)}
-                  >
-                    30 min
-                  </button>
-                  <button 
-                    className="duration-button" 
-                    onClick={() => startPomodoro(45)}
-                  >
-                    45 min
-                  </button>
-                  <button 
-                    className="duration-button" 
-                    onClick={() => startPomodoro(60)}
-                  >
-                    60 min
-                  </button>
-                </div>
-              </div>
-            )}
+                )}
+              </Droppable>
+            </DragDropContext>
           </div>
+          
+          <div className="section-box habits-section">
+            <h3 className="section-subtitle">Habits Tracker</h3>
+            <div className="habits-list">
+              {(entry.habits || []).map((habit) => (
+                <div key={habit.id} className="habit-item" style={{ minHeight: '50px' }}>
+                  <input
+                    type="checkbox"
+                    checked={habit.completedByDate?.[entry.date] || false}
+                    onChange={e => {
+                      const newHabits = [...entry.habits];
+                      const habitIndex = newHabits.findIndex(h => h.id === habit.id);
+                      newHabits[habitIndex].completedByDate = {
+                        ...newHabits[habitIndex].completedByDate,
+                        [entry.date]: e.target.checked
+                      };
+                      setEntry(prev => ({ ...prev, habits: newHabits }));
+                    }}
+                  />
+                  <AutoResizeTextarea
+                    value={habit.text}
+                    onChange={e => {
+                      const newHabits = [...entry.habits];
+                      const habitIndex = newHabits.findIndex(h => h.id === habit.id);
+                      newHabits[habitIndex].text = e.target.value;
+                      setEntry(prev => ({ ...prev, habits: newHabits }));
+                    }}
+                    placeholder="Enter habit..."
+                    className="habit-input"
+                  />
+                  <button 
+                    className="delete-habit"
+                    onClick={() => deleteHabit(habit.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                className="add-habit-button"
+                onClick={() => {
+                  const newHabit = { 
+                    id: Date.now(), 
+                    text: '', 
+                    completedByDate: {
+                      [entry.date]: false
+                    } 
+                  };
+
+                  setEntry(prev => ({
+                    ...prev,
+                    habits: prev.habits ? [...prev.habits, newHabit] : [newHabit]
+                  }));
+                }}
+              >
+                + Add Habit
+              </button>
+            </div>
+          </div>
+          
+          <div className="section-box mit-section">
+            <h3 className="section-subtitle">INTP confuse brainstorm with progress. <br/> Дія окреслює приорітети</h3>
+            <textarea
+              value={entry.mostImportantTask || ''}
+              onChange={(e) => handleChange('mostImportantTask', e.target.value)}
+              placeholder="What’s the single, most important task you will dedicate at least 4–6 hours to?"
+              className="mit-input"
+              rows={4}
+              style={{ width: '100%', marginTop: '12px', fontSize: '16px' }}
+            />
+          </div>
+          <iframe
+                style={{ width: '100%', maxWidth: '360px', height: '360px' }}
+                src="https://pomofocus.io/app"
+                frameBorder="0"
+              />
+              <iframe
+                style={{ width: '100%', maxWidth: '360px', height: '360px' }}
+                src="https://stopwatch-app.com/widget/stopwatch?theme=light&color=indigo"
+                frameBorder="0"
+              />
+      
         </div>
+        
       </div>
     </div>
   );

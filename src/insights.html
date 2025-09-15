@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Résumés des Livres - Carnegie & 48 Lois du Pouvoir</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #2c3e50, #4a235a);
+            color: #f0f0f0;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></svg>');
+            z-index: -1;
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            margin-bottom: 30px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            z-index: -1;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .book-section {
+            flex: 1;
+            background: rgba(30, 30, 40, 0.85);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .book-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        .book-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(100, 150, 255, 0.5);
+        }
+
+        .book-title h2 {
+            font-size: 1.8rem;
+            color: #64a0ff;
+        }
+
+        .book-title i {
+            font-size: 2.5rem;
+            color: #ff7b54;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            margin: 25px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(100, 150, 255, 0.3);
+            color: #64a0ff;
+        }
+
+        .rules-list {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+
+        .rules-list li {
+            margin-bottom: 15px;
+            padding-left: 25px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .rules-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #ff7b54;
+            font-size: 1.5rem;
+            top: -5px;
+        }
+
+        .correlation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(20, 20, 30, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .correlation-table th {
+            background: rgba(70, 100, 180, 0.6);
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .correlation-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .correlation-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .correlation-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .correlation-table td:first-child {
+            color: #ffb454;
+            font-weight: 500;
+        }
+
+        .correlation-table td:nth-child(2) {
+            color: #54ffb4;
+        }
+
+        .correlation-table td:nth-child(3) {
+            color: #b454ff;
+        }
+
+        .notes-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(20, 25, 40, 0.7);
+            border-radius: 10px;
+            border-left: 4px solid #ff7b54;
+        }
+
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .note-card {
+            background: rgba(30, 35, 50, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(100, 150, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .note-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(100, 150, 255, 0.5);
+        }
+
+        .note-card h4 {
+            color: #ffb454;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .note-card ul {
+            padding-left: 20px;
+        }
+
+        .note-card li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            background: rgba(255, 123, 84, 0.2);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .quote {
+            font-style: italic;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 3px solid #ff7b54;
+            background: rgba(20, 20, 30, 0.5);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #a0a0c0;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 1100px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2.2rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .book-title h2 {
+                font-size: 1.5rem;
+            }
+            
+            .correlation-table {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Animation for cards */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .book-section {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .book-section:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <div class="quote">
+    Il est impossible de faire plus que ta capacité. Les pensées conscientes ne sont que 0.0001%.<br>
+    Donc, gérer tout ce qui entoure le travail (repos, pensées, méditation, etc.) est aussi important que le "vrai" travail ou l’éducation.
+</div>
+`
+
+    <div class="header">
+        <h1>2 Livres le plus important pour grandir a la vie</h1>
+        <p>Si tu veux obtenir liberte et toucher le Dieux, il fait d'avoir les amis et pouvouir</p>
+    </div>
+
+    <div class="container">
+        <!-- Dale Carnegie Book -->
+        <div class="book-section">
+            <div class="book-title">
+                <i class="fas fa-handshake"></i>
+                <h2>Comment se faire des amis - Dale Carnegie</h2>
+            </div>
+            
+            <h3 class="section-title">Principes Fondamentaux</h3>
+            <ul class="rules-list">
+                <li><span class="highlight">Évitez la critique directe</span> → attaquer détruit la coopération</li>
+                <li><span class="highlight">Appréciez sincèrement</span> → tout le monde veut se sentir important</li>
+                <li><span class="highlight">Comprendre l'autre avant de convaincre</span> → empathie</li>
+                <li><span class="highlight">Souriez et soyez authentique</span></li>
+                <li><span class="highlight">Retenez les noms</span> → importance personnelle</li>
+                <li><span class="highlight">Écoutez activement</span></li>
+                <li><span class="highlight">Parlez des centres d'intérêt de l'autre</span></li>
+                <li><span class="highlight">Montrez que vous comprenez ses besoins</span></li>
+                <li><span class="highlight">Faites-le sentir apprécié immédiatement</span></li>
+            </ul>
+            
+            <div class="quote">
+                "Le désir d'être important est le désir le plus profond qui caractérise la nature humaine." - Dale Carnegie
+            </div>
+            
+            <h3 class="section-title">Corrélations avec Warcraft 3 et Poker</h3>
+            <table class="correlation-table">
+                <thead>
+                    <tr>
+                        <th>Règle</th>
+                        <th>Warcraft 3</th>
+                        <th>Poker</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Ne pas critiquer</td>
+                        <td>Dans une team, ne blâmez pas un joueur pour une erreur ; proposez un plan pour la prochaine bataille</td>
+                        <td>Pas d'ego battle à table, restez calme face aux bluffs</td>
+                    </tr>
+                    <tr>
+                        <td>Apprécier sincèrement</td>
+                        <td>Remerciez le joueur qui scoute ou sauve vos unités</td>
+                        <td>Encourager & sourire → Maintient une image friendly, évite qu'on vous cible</td>
+                    </tr>
+                    <tr>
+                        <td>Faire croire que l'idée vient de l'autre</td>
+                        <td>Suggérez subtilement un creep route et laissez le coéquipier le proposer "officiellement"</td>
+                        <td>Donner l'impression qu'ils contrôlent → Laissez-les "mener" la main pour mieux les piéger</td>
+                    </tr>
+                    <tr>
+                        <td>Encourager les progrès</td>
+                        <td>Félicitez une bonne défense même si la game est perdue</td>
+                        <td>Avouer vos erreurs → Montrez un misplay volontairement pour brouiller votre image</td>
+                    </tr>
+                    <tr>
+                        <td>Lire les besoins & émotions</td>
+                        <td>Comprendre les objectifs de chaque joueur dans l'équipe</td>
+                        <td>Comprendre qui joue pour l'argent, qui joue pour l'ego</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3 class="section-title">Stratégies Avancées</h3>
+            <ul class="rules-list">
+                <li><span class="highlight">Évitez la confrontation frontale</span></li>
+                <li><span class="highlight">Reconnaissez vos torts rapidement</span></li>
+                <li><span class="highlight">Obtenez des "oui" successifs</span></li>
+                <li><span class="highlight">Laissez l'autre s'exprimer</span></li>
+                <li><span class="highlight">Donnez l'impression que l'idée vient de lui</span></li>
+                <li><span class="highlight">Montrez comment il gagne aussi</span></li>
+                <li><span class="highlight">Appel aux valeurs universelles</span></li>
+                <li><span class="highlight">Créez l'enthousiasme pour agir</span></li>
+            </ul>
+        </div>
+        
+        <!-- 48 Lois du Pouvoir -->
+        <div class="book-section">
+            <div class="book-title">
+                <i class="fas fa-crown"></i>
+                <h2>Les 48 Lois du Pouvoir - Robert Greene</h2>
+            </div>
+            
+            <h3 class="section-title">Lois Fondamentales</h3>
+            <ul class="rules-list">
+                <li><span class="highlight">Ne rivalisez jamais avec quelqu'un qui n'a rien à perdre</span></li>
+                <li><span class="highlight">Dites-en toujours moins que nécessaire</span> → Plus vous parlez, plus vous semblez banal</li>
+                <li><span class="highlight">Protégez votre réputation à tout prix</span></li>
+                <li><span class="highlight">Attirez l'attention à tout prix</span></li>
+                <li><span class="highlight">Agissez, ne parlez pas</span> → Seules les actions comptent</li>
+                <li><span class="highlight">Soyez toujours modeste</span></li>
+                <li><span class="highlight">Ne vous attendez jamais à de la loyauté</span> → Les gens sont motivés par le profit</li>
+            </ul>
+            
+            <div class="quote">
+                "Le pouvoir n'est pas quelque chose qu'on vous donne, mais quelque chose que vous prenez." - Robert Greene
+            </div>
+            
+            <h3 class="section-title">Notes Personnelles & Analyses</h3>
+            <div class="notes-section">
+                <div class="notes-grid">
+                    <div class="note-card">
+                        <h4><i class="fas fa-magic"></i> Aura</h4>
+                        <ul>
+                            <li>Être toujours modeste</li>
+                            <li>N'attendez jamais de loyauté - les gens sont motivés par le profit</li>
+                            <li>Ne dites pas ce que vous voulez - exprimez-vous par blague ou simplification</li>
+                            <li>Maintenez une apparence ferme mais pas pour dissimuler vos intentions</li>
+                            <li>Protégez votre réputation à tout prix</li>
+                            <li>La réputation nécessite d'être visible</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="note-card">
+                        <h4><i class="fas fa-brain"></i> Sagesse</h4>
+                        <ul>
+                            <li>Diriger et bâtir avec les mains des autres</li>
+                            <li>Combattre toujours sur votre terrain</li>
+                            <li>Ne parlez pas avec les gens stupides ou malheureux</li>
+                            <li>Soyez irresponsable quand nécessaire (ex: DUMY et TOP)</li>
+                            <li>Comptez sur l'intérêt personnel, pas le bonheur</li>
+                            <li>Rester presque toujours neutre</li>
+                            <li>Jouer le naïf pour manœuvrer</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="note-card">
+                        <h4><i class="fas fa-chess"></i> Stratégie</h4>
+                        <ul>
+                            <li>Concentrez vos forces</li>
+                            <li>Soyez un espion quand nécessaire</li>
+                            <li>Écrasez complètement vos ennemis</li>
+                            <li>Laissez les autres faire le travail mais prenez le crédit</li>
+                            <li>Créez un spectacle pour attirer l'attention</li>
+                            <li>Faites semblant de vouloir quelque chose pour cacher vos véritables intentions</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="note-card">
+                        <h4><i class="fas fa-balance-scale"></i> Équilibre</h4>
+                        <ul>
+                            <li>Parlez avec des actions, pas des mots</li>
+                            <li>Soyez généreux et honnête seulement si cela sert un intérêt futur</li>
+                            <li>Restez silencieux et absent quand nécessaire</li>
+                            <li>Ne faites jamais paraître les autres stupides</li>
+                            <li>Ne critiquez personne à part vous-même</li>
+                            <li>Gardez toujours une porte de sortie</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 class="section-title">Corrélations avec Warcraft 3 et Poker</h3>
+            <table class="correlation-table">
+                <thead>
+                    <tr>
+                        <th>Loi</th>
+                        <th>Warcraft 3</th>
+                        <th>Poker</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Protégez votre réputation</td>
+                        <td>Maintenez un statut de joueur fiable et compétent</td>
+                        <td>Construisez une image de table cohérente</td>
+                    </tr>
+                    <tr>
+                        <td>Dites-en moins que nécessaire</td>
+                        <td>Ne révélez pas vos stratégies dans le chat</td>
+                        <td>Ne parlez pas de vos mains ou stratégies</td>
+                    </tr>
+                    <tr>
+                        <td>Agissez, ne parlez pas</td>
+                        <td>Montrez votre compétence par le gameplay, pas les mots</td>
+                        <td>Vos actions à table parlent plus que vos mots</td>
+                    </tr>
+                    <tr>
+                        <td>Soyez irresponsable quand nécessaire</td>
+                        <td>Laissez un allié prendre le blâme pour une défaite</td>
+                        <td>Feignez une erreur pour tromper vos adversaires</td>
+                    </tr>
+                    <tr>
+                        <td>Concentrez vos forces</td>
+                        <td>Focus sur un timing push plutôt qu'une attaque dispersée</td>
+                        <td>Misez fort quand vous avez l'avantage</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Si tu ne fait pas ca au debut tu est foutu... Justement imaginer que tu faire le contraire</p>
+    </div>
+
+    <script>
+        // Animation au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Effet de fondu pour les sections
+            const sections = document.querySelectorAll('.book-section');
+            sections.forEach((section, index) => {
+                setTimeout(() => {
+                    section.style.opacity = '1';
+                    section.style.transform = 'translateY(0)';
+                }, 300 * index);
+            });
+            
+            // Effet de parallaxe léger
+            window.addEventListener('scroll', function() {
+                const scrollY = window.scrollY;
+                document.querySelector('.header').style.backgroundPositionY = `-${scrollY * 0.2}px`;
+            });
+            
+            // Surlignage des lignes du tableau au survol
+            const tableRows = document.querySelectorAll('.correlation-table tr');
+            tableRows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    row.style.backgroundColor = 'rgba(100, 150, 255, 0.1)';
+                });
+                
+                row.addEventListener('mouseleave', () => {
+                    row.style.backgroundColor = '';
+                });
+            });
+            
+            // Effet pour les cartes de notes
+            const noteCards = document.querySelectorAll('.note-card');
+            noteCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.boxShadow = '0 8px 20px rgba(255, 123, 84, 0.3)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.boxShadow = '';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
