@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/analyse-action-passee/static/css/main.5bfa8274.css",
-    "main.js": "/analyse-action-passee/static/js/main.afe84d77.js",
+    "main.js": "/analyse-action-passee/static/js/main.240ec987.js",
     "static/js/453.a1daf087.chunk.js": "/analyse-action-passee/static/js/453.a1daf087.chunk.js",
     "index.html": "/analyse-action-passee/index.html",
     "main.5bfa8274.css.map": "/analyse-action-passee/static/css/main.5bfa8274.css.map",
-    "main.afe84d77.js.map": "/analyse-action-passee/static/js/main.afe84d77.js.map",
+    "main.240ec987.js.map": "/analyse-action-passee/static/js/main.240ec987.js.map",
     "453.a1daf087.chunk.js.map": "/analyse-action-passee/static/js/453.a1daf087.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.5bfa8274.css",
-    "static/js/main.afe84d77.js"
+    "static/js/main.240ec987.js"
   ]
 }
