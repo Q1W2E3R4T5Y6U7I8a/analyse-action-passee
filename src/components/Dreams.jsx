@@ -39,6 +39,78 @@ const Dreams = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const mapRef = useRef(null);
 
+  // Function to parse date and get sortable value
+  const parseDateForSorting = (dateString) => {
+    if (!dateString || !dateString.trim()) return { sortValue: Infinity, original: dateString };
+    
+    const cleanDate = dateString.trim();
+    
+    // Check for "YYYY" format
+    if (/^\d{4}$/.test(cleanDate)) {
+      return { 
+        sortValue: parseInt(cleanDate), 
+        original: dateString,
+        isValidFormat: true
+      };
+    }
+    
+    // Check for "YYYY Month" format
+    const monthMatch = cleanDate.match(/^(\d{4})\s+([a-zA-Z]+)$/);
+    if (monthMatch) {
+      const year = parseInt(monthMatch[1]);
+      const monthName = monthMatch[2].toLowerCase();
+      const months = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december'
+      ];
+      const monthIndex = months.indexOf(monthName);
+      if (monthIndex !== -1) {
+        return { 
+          sortValue: year + (monthIndex + 1) / 12,
+          original: dateString,
+          isValidFormat: true
+        };
+      }
+    }
+    
+    // Invalid format - push to bottom
+    return { 
+      sortValue: Infinity, 
+      original: dateString,
+      isValidFormat: false
+    };
+  };
+
+  // Function to sort dreams by date
+  const sortDreamsByDate = (dreamList, column) => {
+    if (column === 'timeless' || column === 'past') {
+      return dreamList;
+    }
+    
+    return [...dreamList].sort((a, b) => {
+      const dateA = parseDateForSorting(a.date);
+      const dateB = parseDateForSorting(b.date);
+      
+      // Both have valid format dates
+      if (dateA.isValidFormat && dateB.isValidFormat) {
+        return dateA.sortValue - dateB.sortValue;
+      }
+      
+      // Only A has valid format
+      if (dateA.isValidFormat && !dateB.isValidFormat) {
+        return -1;
+      }
+      
+      // Only B has valid format
+      if (!dateA.isValidFormat && dateB.isValidFormat) {
+        return 1;
+      }
+      
+      // Neither has valid format - keep original order
+      return 0;
+    });
+  };
+
   const exportToJson = () => {
     const data = { dreams, markers };
     const jsonString = JSON.stringify(data, null, 2);
@@ -297,7 +369,7 @@ const Dreams = () => {
             />
             <input
               type="text"
-              placeholder="Date (optional)"
+              placeholder="Date (e.g., '2025' or '2025 April')"
               value={newDream.date}
               onChange={(e) => setNewDream({...newDream, date: e.target.value})}
             />
@@ -336,7 +408,7 @@ const Dreams = () => {
                         {...provided.droppableProps}
                         className="dream-list"
                       >
-                        {filterDreams(dreams[column]).map((dream, index) => (
+                        {sortDreamsByDate(filterDreams(dreams[column]), column).map((dream, index) => (
                           <Draggable key={dream.id} draggableId={dream.id.toString()} index={index}>
                             {(provided) => (
                               <div
@@ -500,7 +572,7 @@ const Dreams = () => {
               type="text"
               value={editingDream.date || ''}
               onChange={(e) => setEditingDream({...editingDream, date: e.target.value})}
-              placeholder="Date (optional)"
+              placeholder="Date (e.g., '2025' or '2025 April')"
             />
             <select
               value={editingDream.category}
