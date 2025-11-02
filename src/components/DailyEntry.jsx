@@ -812,8 +812,11 @@ export default function DailyEntry() {
             </div>
           </div>
 
-          {/* Deuxième ligne avec tout le reste */}
-          <div className="second-row">
+          {/* ESPACE ENTRE DAILY TASKS ET DAILY REFLECTIONS */}
+          <div style={{ height: '40px' }}></div>
+
+          {/* NOUVELLE LIGNE - Daily Reflections et tout le reste */}
+          <div className="new-row">
             <div className="section-box insights-section">
               <h3 className="section-subtitle">Daily Reflections</h3>
               <div className="insights-grid">

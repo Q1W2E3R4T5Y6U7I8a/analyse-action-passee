@@ -604,10 +604,13 @@ $shadow-color: rgba(0, 0, 0, 0.1);
 
 .second-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   align-items: start;
+  margin-top: 30px; // add space above
+  width: 100%; // ensure full width
 }
+
 
 // Éditeur de texte riche
 .rich-text-editor {
