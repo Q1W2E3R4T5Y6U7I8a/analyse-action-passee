@@ -53,42 +53,6 @@ const initialState = {
   mostImportantTask: ''
 };
 
-// URL de ton Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGBuCB6ZbuPJy0UEPN1UTkADKhO9zSdTbi28vzKhFrtQ2rj7mTUk3US3o_4-lsZ5ZVOg/exec';
-
-// Fonction pour sauvegarder dans Google Sheets
-const saveToGoogleSheets = async (entry) => {
-  try {
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        type: 'dailyEntry',
-        date: entry.date,
-        efficiency: entry.efficiency || 0,
-        productivity: entry.productivity || 0,
-        happiness: entry.happiness || 0,
-        pomodoros: entry.pomodoros || 0,
-        energy: entry.energy || {},
-        victory: entry.victory || '',
-        loss: entry.loss || '',
-        insight: entry.insight || '',
-        mostImportantTask: entry.mostImportantTask || '',
-        habits: entry.habits || [],
-        todos: entry.todos || []
-      })
-    });
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error saving to Google Sheets:', error);
-    throw error;
-  }
-};
-
 const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus }) => {
   const textareaRef = useRef(null);
   
@@ -104,20 +68,101 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus
     if (autoFocus && textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [adjustHeight, autoFocus, value]);
+  }, [adjustHeight, autoFocus]);
+
+  const handleChange = (e) => {
+    onChange(e.target.value);
+    adjustHeight();
+  };
 
   return (
     <textarea
       ref={textareaRef}
       value={value}
-      onChange={onChange}
+      onChange={handleChange}
       placeholder={placeholder}
       className={className}
-      onInput={adjustHeight}
       rows={1}
     />
   );
 };
+
+const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus }) => {
+  const editorRef = useRef(null);
+  const isComposingRef = useRef(false);
+
+  const setCaretToEnd = (el) => {
+    el.focus();
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(el);
+    range.collapse(false); // move caret to end
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  // Only update innerHTML if value is different from current content
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el || isComposingRef.current) return;
+
+    if (el.innerHTML !== value) {
+      el.innerHTML = value || '';
+      // Use requestAnimationFrame to ensure cursor moves after DOM update
+      requestAnimationFrame(() => setCaretToEnd(el));
+    }
+  }, [value]);
+
+  useEffect(() => {
+    if (autoFocus && editorRef.current) {
+      setCaretToEnd(editorRef.current);
+    }
+  }, [autoFocus]);
+
+  const handleInput = (e) => {
+    if (!isComposingRef.current) {
+      onChange(e.currentTarget.innerHTML);
+    }
+  };
+
+  const handleCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleCompositionEnd = (e) => {
+    isComposingRef.current = false;
+    onChange(e.currentTarget.innerHTML);
+  };
+
+  const applyFormat = (command, value = null) => {
+    document.execCommand(command, false, value);
+    requestAnimationFrame(() => {
+      onChange(editorRef.current.innerHTML);
+      setCaretToEnd(editorRef.current);
+    });
+  };
+
+  return (
+    <div className={`rich-text-editor ${className}`}>
+      <div className="toolbar">
+        <button type="button" onClick={() => applyFormat('bold')}><b>B</b></button>
+        <button type="button" onClick={() => applyFormat('italic')}><i>I</i></button>
+        <button type="button" onClick={() => applyFormat('underline')}><u>U</u></button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={handleInput}
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
+        placeholder={placeholder}
+        className="editor-content"
+        style={{ minHeight: '60px', width: '100%' }}
+      />
+    </div>
+  );
+};
+
 
 export default function DailyEntry() {
   const [entry, setEntry] = useState(initialState);
@@ -125,14 +170,45 @@ export default function DailyEntry() {
   const [audio, setAudio] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [newTodoId, setNewTodoId] = useState(null);
-  const [syncStatus, setSyncStatus] = useState('');
 
   // États unifiés pour le Pomodoro
   const [isPomodoroActive, setIsPomodoroActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [pomodoroDuration, setPomodoroDuration] = useState(45); // Durée par défaut en minutes
+  const [pomodoroDuration, setPomodoroDuration] = useState(45);
   const [timerEndTime, setTimerEndTime] = useState(null);
   const timerRef = useRef(null);
+
+  // États pour la méditation
+  const [meditationTrack, setMeditationTrack] = useState(null);
+  const [isMeditationPlaying, setIsMeditationPlaying] = useState(false);
+
+  const meditationTracks = [
+    {
+      id: 1,
+      title: "Blue eyed",
+      url: "https://www.youtube.com/embed/_x7TrTX2kXU?autoplay=1"
+    },
+    {
+      id: 2,
+      title: "Last Agni Kai", 
+      url: "https://www.youtube.com/embed/k_P6Xjx9Tnk?autoplay=1"
+    },
+    {
+      id: 3,
+      title: "Tibetian bowl", 
+      url: "https://www.youtube.com/embed/gbSeNYzYCiA?autoplay=1"
+    },
+    {
+      id: 4,
+      title: "Last of us", 
+      url: "https://www.youtube.com/embed/DvNF51-TSAQ?autoplay=1"
+    },
+    {
+      id: 5,
+      title: "Space rangers", 
+      url: "https://www.youtube.com/embed/UVEDaZ4pzoM?autoplay=1"
+    }
+  ];
 
   const tracks = [
     "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_1.mp3",
@@ -175,19 +251,6 @@ export default function DailyEntry() {
         }
     );
   }, [entry.date, history]);
-
-  // Fonction pour synchroniser avec Google Sheets
-  const syncWithGoogleSheets = async () => {
-    try {
-      setSyncStatus('Synchronisation...');
-      await saveToGoogleSheets(entry);
-      setSyncStatus('✅ Données sauvegardées dans Google Sheets!');
-      setTimeout(() => setSyncStatus(''), 3000);
-    } catch (error) {
-      setSyncStatus('❌ Erreur de synchronisation');
-      setTimeout(() => setSyncStatus(''), 3000);
-    }
-  };
 
   // Auto-save whenever entry changes
   useEffect(() => {
@@ -245,7 +308,7 @@ export default function DailyEntry() {
     }
   }, []);
 
-  // Timer effect unifié
+  // Timer effect unifié - FIXED: Play sound even when tab is not active
   useEffect(() => {
     if (isPomodoroActive && timerEndTime) {
       timerRef.current = setInterval(() => {
@@ -254,13 +317,12 @@ export default function DailyEntry() {
         
         setTimeLeft(remaining);
         
-        // Mettre à jour le titre de la page
         document.title = `${formatTime(remaining)} - Pomodoro Timer`;
         
         if (remaining === 0) {
           handlePomodoroEnd();
         }
-      }, 100); // Vérifier plus fréquemment pour plus de précision
+      }, 100);
     }
 
     return () => {
@@ -283,7 +345,7 @@ export default function DailyEntry() {
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      document.title = 'Daily Entry'; // Réinitialiser le titre quand le composant se démonte
+      document.title = 'Daily Entry';
     };
   }, [isPomodoroActive, timerEndTime]);
 
@@ -320,7 +382,7 @@ export default function DailyEntry() {
     handleChange('date', `${day}/${month}/${year}`);
   };
 
-  // Fonctions unifiées pour le Pomodoro
+  // Fonctions unifiées pour le Pomodoro - FIXED: Always play sound
   const startPomodoro = (duration) => {
     const durationInMinutes = typeof duration === 'number' ? duration : pomodoroDuration;
     const durationInSeconds = durationInMinutes * 60;
@@ -339,7 +401,6 @@ export default function DailyEntry() {
     setIsPomodoroActive(false);
     document.title = 'Daily Entry';
 
-    // Calculer le nombre de pomodoros (45min = 1 pomodoro)
     const pomodoroUnits = pomodoroDuration / 45;
 
     setEntry(prev => ({
@@ -351,10 +412,20 @@ export default function DailyEntry() {
       }
     }));
 
+    // FIXED: Always play sound, even when tab is not active
     if (!isMuted) {
       const randomTrack = Math.floor(Math.random() * tracks.length);
       const newAudio = new Audio(tracks[randomTrack]);
-      newAudio.play();
+      
+      // Force play and set volume to max
+      newAudio.volume = 1.0;
+      newAudio.play().catch(e => {
+        console.log('Audio play failed:', e);
+        // Retry once
+        setTimeout(() => {
+          newAudio.play().catch(e => console.log('Audio retry failed:', e));
+        }, 100);
+      });
       setAudio(newAudio);
     }
   };
@@ -452,37 +523,18 @@ export default function DailyEntry() {
     }
   };
 
+  const startMeditation = (track) => {
+    setMeditationTrack(track);
+    setIsMeditationPlaying(true);
+  };
+
+  const stopMeditation = () => {
+    setIsMeditationPlaying(false);
+    setMeditationTrack(null);
+  };
+
   return (
     <div className="daily-entry">
-      {/* Bouton de synchronisation */}
-      <div className="sync-section" style={{ marginBottom: '20px', textAlign: 'center' }}>
-        <button 
-          onClick={syncWithGoogleSheets}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#4285f4',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            fontSize: '16px'
-          }}
-        >
-          💾 Sauvegarder dans Google Sheets
-        </button>
-        {syncStatus && (
-          <div style={{ 
-            marginTop: '10px', 
-            padding: '10px',
-            backgroundColor: syncStatus.includes('✅') ? '#4CAF50' : '#ff4444',
-            color: 'white',
-            borderRadius: '5px'
-          }}>
-            {syncStatus}
-          </div>
-        )}
-      </div>
-
       {/* Section Pomodoro unifiée */}
       <div className="pomodoro-section" style={{ 
         marginBottom: '20px', 
@@ -510,7 +562,7 @@ export default function DailyEntry() {
                 borderRadius: '5px',
                 cursor: 'pointer'
               }}>
-                Annuler
+                Cancel
               </button>
               <button onClick={toggleMute} className="mute-button" style={{
                 padding: '8px 16px',
@@ -631,238 +683,276 @@ export default function DailyEntry() {
         </div>
 
         <div className="bottom-section">
-          
-          <div className="section-box metrics-section">
-            <h3 className="section-subtitle">Performance Metrics</h3>
-            <div className="metrics-grid">
-              {['efficiency', 'productivity', 'happiness'].map(metric => (
-                <div key={metric} className="metric-card">
-                  <label className="metric-label">
-                    {metric.charAt(0).toUpperCase() + metric.slice(1)}
-                    <span className="metric-value" style={{ color: getMetricColor(entry[metric]) }}>
-                      {entry[metric] ?? ''}%
-                    </span>
-                  </label>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
-                    value={entry[metric] ?? 50} 
-                    onChange={e => handleChange(metric, +e.target.value)} 
-                    className="metric-slider"
-                    style={{ '--track-color': getMetricColor(entry[metric]) }}
-                  />
-                  <div className="slider-labels">
-                    <span>0</span>
-                    <span>50</span>
-                    <span>100</span>
+          {/* Première ligne avec 3 colonnes - REORGANIZED */}
+          <div className="three-column-row">
+            {/* Colonne 1: Energy Levels */}
+            <div className="section-box energy-section">
+              <h3 className="section-subtitle">Energy Levels</h3>
+              <div className="energy-grid">
+                {Object.entries(entry.energy).map(([key, value]) => (
+                  <div key={key} className={`energy-card energy-${key}`}>
+                    <label className="energy-label">
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                      <span className="energy-value">{value ?? ''}%</span>
+                    </label>
+                    <div className="energy-slider-container">
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={value ?? 50} 
+                        onChange={e => handleEnergy(key, +e.target.value)}
+                        className="energy-slider"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
-
-              <div className="metric-card pomodoros-card">
-                <label className="input-label">Pomodoros Completed</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  step="0.01"
-                  value={entry.pomodoros} 
-                  onChange={e => handleChange('pomodoros', parseFloat(e.target.value))}
-                  className="pomodoros-input"
-                />
-                <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                  (45min = 1 pomodoro)
-                </div>
+                ))}
               </div>
             </div>
-          </div>
 
-          <div className="section-box energy-section">
-            <h3 className="section-subtitle">Energy Levels</h3>
-            <div className="energy-grid">
-              {Object.entries(entry.energy).map(([key, value]) => (
-                <div key={key} className={`energy-card energy-${key}`}>
-                  <label className="energy-label">
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
-                    <span className="energy-value">{value ?? ''}%</span>
-                  </label>
-                  <div className="energy-slider-container">
+            {/* Colonne 2: Performance Metrics */}
+            <div className="section-box metrics-section">
+              <h3 className="section-subtitle">Performance Metrics</h3>
+              <div className="metrics-grid">
+                {['efficiency', 'productivity', 'happiness'].map(metric => (
+                  <div key={metric} className="metric-card">
+                    <label className="metric-label">
+                      {metric.charAt(0).toUpperCase() + metric.slice(1)}
+                      <span className="metric-value" style={{ color: getMetricColor(entry[metric]) }}>
+                        {entry[metric] ?? ''}%
+                      </span>
+                    </label>
                     <input 
                       type="range" 
                       min="0" 
                       max="100" 
-                      value={value ?? 50} 
-                      onChange={e => handleEnergy(key, +e.target.value)}
-                      className="energy-slider"
+                      value={entry[metric] ?? 50} 
+                      onChange={e => handleChange(metric, +e.target.value)} 
+                      className="metric-slider"
+                      style={{ '--track-color': getMetricColor(entry[metric]) }}
                     />
+                    <div className="slider-labels">
+                      <span>0</span>
+                      <span>50</span>
+                      <span>100</span>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="metric-card pomodoros-card">
+                  <label className="input-label">Pomodoros Completed</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    step="0.01"
+                    value={entry.pomodoros} 
+                    onChange={e => handleChange('pomodoros', parseFloat(e.target.value))}
+                    className="pomodoros-input"
+                  />
+                  <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                    (45min = 1 pomodoro)
                   </div>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Colonne 3: Todos */}
+            <div className="section-box todos-section">
+              <h3 className="section-subtitle">Daily Tasks</h3>
+              <div className="todos-grid">
+                {entry.todos.map((todo, index) => (
+                  <div key={todo.id} className={`todo-card ${todo.completed ? 'completed' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={todo.completed || false}
+                      onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
+                      className="todo-checkbox"
+                    />
+                    <RichTextEditor
+                      value={todo.text || ''}
+                      onChange={(value) => handleTodoChange(todo.id, 'text', value)}
+                      placeholder="Enter a task..."
+                      className="todo-input"
+                      autoFocus={todo.id === newTodoId}
+                    />
+                    <div className="todo-priority-buttons">
+                      <button 
+                        onClick={() => moveTodo(todo.id, 'up')}
+                        disabled={index === 0}
+                        className="priority-button"
+                      >
+                        ↑
+                      </button>
+                      <button 
+                        onClick={() => moveTodo(todo.id, 'down')}
+                        disabled={index === entry.todos.length - 1}
+                        className="priority-button"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                    <button 
+                      className="delete-todo"
+                      onClick={() => deleteTodo(todo.id)}
+                    >
+                      ×
+                    </button>
+                    {todo.completed && (
+                      <span className="completed-icon">✓</span>
+                    )}
+                  </div>
+                ))}
+                <button 
+                  className="add-todo-button"
+                  onClick={addNewTodo}
+                >
+                  + Add Task
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="section-box insights-section">
-            <h3 className="section-subtitle">Daily Reflections</h3>
-            <div className="insights-grid">
-              <div className="insight-card victory-card">
-                <label className="input-label"> ❌✅ Victories / Losses <span className="required">*</span></label>
-                <textarea 
-                  value={entry.victory} 
-                  onChange={e => handleChange('victory', e.target.value)} 
-                  placeholder="What went well today?"
-                  className="insight-textarea"
-                  rows="6"
-                  required
-                />
-              </div>
-              <div className="insight-card loss-card">
-                <label className="input-label">💤 Dreams</label>
-                <textarea 
-                  value={entry.loss} 
-                  onChange={e => handleChange('loss', e.target.value)} 
-                  placeholder="What could be improved?"
-                  className="insight-textarea"
-                  rows="6"
-                />
-              </div>
-              <div className="insight-card insight-card">
-                <label className="input-label">🤔 Insights</label>
-                <textarea 
-                  value={entry.insight} 
-                  onChange={e => handleChange('insight', e.target.value)} 
-                  placeholder="Did you learn something today?"
-                  className="insight-textarea"
-                  rows="6"
-                />
-              </div>
-            </div>
-          </div>
-          
-         <div className="section-box todos-section">
-  <h3 className="section-subtitle">Daily Tasks</h3>
-  <div className="todos-grid">
-    {entry.todos.map((todo, index) => (
-      <div key={todo.id} className={`todo-card ${todo.completed ? 'completed' : ''}`}>
-        <input
-          type="checkbox"
-          checked={todo.completed || false}
-          onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
-          className="todo-checkbox"
-        />
-        <AutoResizeTextarea
-          value={todo.text || ''}
-          onChange={(e) => handleTodoChange(todo.id, 'text', e.target.value)}
-          placeholder="Enter a task..."
-          className="todo-input"
-          autoFocus={todo.id === newTodoId}
-        />
-        <div className="todo-priority-buttons">
-          <button 
-            onClick={() => moveTodo(todo.id, 'up')}
-            disabled={index === 0}
-            className="priority-button"
-          >
-            ↑
-          </button>
-          <button 
-            onClick={() => moveTodo(todo.id, 'down')}
-            disabled={index === entry.todos.length - 1}
-            className="priority-button"
-          >
-            ↓
-          </button>
-        </div>
-        <button 
-          className="delete-todo"
-          onClick={() => deleteTodo(todo.id)}
-        >
-          ×
-        </button>
-        {todo.completed && (
-          <span className="completed-icon">✓</span>
-        )}
-      </div>
-    ))}
-    <button 
-      className="add-todo-button"
-      onClick={addNewTodo}
-    >
-      + Add Task
-    </button>
-  </div>
-</div>
-          
-          <div className="section-box habits-section">
-            <h3 className="section-subtitle">Habits Tracker</h3>
-            <div className="habits-list">
-              {(entry.habits || []).map((habit) => (
-                <div key={habit.id} className="habit-item" style={{ minHeight: '50px' }}>
-                  <input
-                    type="checkbox"
-                    checked={habit.completedByDate?.[entry.date] || false}
-                    onChange={e => {
-                      const newHabits = [...entry.habits];
-                      const habitIndex = newHabits.findIndex(h => h.id === habit.id);
-                      newHabits[habitIndex].completedByDate = {
-                        ...newHabits[habitIndex].completedByDate,
-                        [entry.date]: e.target.checked
-                      };
-                      setEntry(prev => ({ ...prev, habits: newHabits }));
-                    }}
-                  />
+          {/* Deuxième ligne avec tout le reste */}
+          <div className="second-row">
+            <div className="section-box insights-section">
+              <h3 className="section-subtitle">Daily Reflections</h3>
+              <div className="insights-grid">
+                <div className="insight-card victory-card">
+                  <label className="input-label">❌✅ Victories / Losses</label>
                   <AutoResizeTextarea
-                    value={habit.text}
-                    onChange={e => {
-                      const newHabits = [...entry.habits];
-                      const habitIndex = newHabits.findIndex(h => h.id === habit.id);
-                      newHabits[habitIndex].text = e.target.value;
-                      setEntry(prev => ({ ...prev, habits: newHabits }));
-                    }}
-                    placeholder="Enter habit..."
-                    className="habit-input"
+                    value={entry.victory}
+                    onChange={(value) => handleChange('victory', value)}
+                    placeholder="What went well today? What didn't?"
+                    className="insight-textarea"
                   />
-                  <button 
-                    className="delete-habit"
-                    onClick={() => deleteHabit(habit.id)}
-                  >
-                    ×
-                  </button>
                 </div>
-              ))}
-              <button
-                className="add-habit-button"
-                onClick={() => {
-                  const newHabit = { 
-                    id: Date.now(), 
-                    text: '', 
-                    completedByDate: {
-                      [entry.date]: false
-                    } 
-                  };
-
-                  setEntry(prev => ({
-                    ...prev,
-                    habits: prev.habits ? [...prev.habits, newHabit] : [newHabit]
-                  }));
-                }}
-              >
-                + Add Habit
-              </button>
+                <div className="insight-card loss-card">
+                  <label className="input-label">💤 Dreams & Goals</label>
+                  <AutoResizeTextarea
+                    value={entry.loss}
+                    onChange={(value) => handleChange('loss', value)}
+                    placeholder="Dreams, goals, things to improve..."
+                    className="insight-textarea"
+                  />
+                </div>
+                <div className="insight-card insight-card">
+                  <label className="input-label">🤔 Insights & Learnings</label>
+                  <AutoResizeTextarea
+                    value={entry.insight}
+                    onChange={(value) => handleChange('insight', value)}
+                    placeholder="New learnings, insights, realizations..."
+                    className="insight-textarea"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="section-box habits-section">
+              <h3 className="section-subtitle">Habits Tracker</h3>
+              <div className="habits-list">
+                {(entry.habits || []).map((habit) => (
+                  <div key={habit.id} className="habit-item">
+                    <input
+                      type="checkbox"
+                      checked={habit.completedByDate?.[entry.date] || false}
+                      onChange={e => {
+                        const newHabits = [...entry.habits];
+                        const habitIndex = newHabits.findIndex(h => h.id === habit.id);
+                        newHabits[habitIndex].completedByDate = {
+                          ...newHabits[habitIndex].completedByDate,
+                          [entry.date]: e.target.checked
+                        };
+                        setEntry(prev => ({ ...prev, habits: newHabits }));
+                      }}
+                    />
+                    <AutoResizeTextarea
+                      value={habit.text}
+                      onChange={e => {
+                        const newHabits = [...entry.habits];
+                        const habitIndex = newHabits.findIndex(h => h.id === habit.id);
+                        newHabits[habitIndex].text = e.target.value;
+                        setEntry(prev => ({ ...prev, habits: newHabits }));
+                      }}
+                      placeholder="Enter habit..."
+                      className="habit-input"
+                    />
+                    <button 
+                      className="delete-habit"
+                      onClick={() => deleteHabit(habit.id)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  className="add-habit-button"
+                  onClick={() => {
+                    const newHabit = { 
+                      id: Date.now(), 
+                      text: '', 
+                      completedByDate: {
+                        [entry.date]: false
+                      } 
+                    };
+                    setEntry(prev => ({
+                      ...prev,
+                      habits: prev.habits ? [...prev.habits, newHabit] : [newHabit]
+                    }));
+                  }}
+                >
+                  + Add Habit
+                </button>
+              </div>
+            </div>
+            
+            <div className="section-box mit-section">
+              <h3 className="section-subtitle">Most Important Task</h3>
+              <AutoResizeTextarea
+                value={entry.mostImportantTask || ''}
+                onChange={(value) => handleChange('mostImportantTask', value)}
+                placeholder="What's the single, most important task you will dedicate at least 4-6 hours to?"
+                className="mit-input"
+              />
             </div>
           </div>
-          
-          <div className="section-box mit-section">
-            <h3 className="section-subtitle">INTP confuse brainstorm with progress. <br/> Дія окреслює приорітети</h3>
-            <textarea
-              value={entry.mostImportantTask || ''}
-              onChange={(e) => handleChange('mostImportantTask', e.target.value)}
-              placeholder="What's the single, most important task you will dedicate at least 4–6 hours to?"
-              className="mit-input"
-              rows={4}
-              style={{ width: '100%', marginTop: '12px', fontSize: '16px' }}
-            />
+        </div>
+
+        {/* Section Méditation en bas */}
+        <div className="meditation-section">
+          <h3 className="section-subtitle">🧘 Meditation Time</h3>
+          <div className="meditation-controls">
+            {meditationTracks.map(track => (
+              <button
+                key={track.id}
+                onClick={() => startMeditation(track)}
+                className={`meditation-button ${meditationTrack?.id === track.id ? 'active' : ''}`}
+              >
+                {track.title}
+              </button>
+            ))}
+            {isMeditationPlaying && (
+              <button
+                onClick={stopMeditation}
+                className="stop-meditation-button"
+              >
+                Stop Meditation
+              </button>
+            )}
           </div>
           
+          {isMeditationPlaying && meditationTrack && (
+            <div className="meditation-player">
+              <iframe
+                width="100%"
+                height="315"
+                src={meditationTrack.url}
+                title={meditationTrack.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          )}
         </div>
       </div>
     </div>
