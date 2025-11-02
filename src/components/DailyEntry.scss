@@ -13,7 +13,7 @@ $shadow-color: rgba(0, 0, 0, 0.1);
 
 // Styles principaux
 .daily-entry {
-  max-width: 2200px;
+  max-width: 1800px;
   margin: 0 auto;
   padding: 20px;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
@@ -98,7 +98,6 @@ $shadow-color: rgba(0, 0, 0, 0.1);
   // Section principale
   .bottom-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 20px;
     padding: 20px;
   }
@@ -269,7 +268,7 @@ $shadow-color: rgba(0, 0, 0, 0.1);
   }
 
   .insight-textarea {
-    width: 100%;
+    width: 90%;
     padding: 12px;
     border: 1px solid $border-color;
     border-radius: 6px;
@@ -527,7 +526,7 @@ $shadow-color: rgba(0, 0, 0, 0.1);
     }
     
     .mit-input {
-      width: 100%;
+      width: 90%;
       border: 1px solid lighten($warning-color, 20%);
       border-radius: 6px;
       padding: 12px;
@@ -588,12 +587,6 @@ $shadow-color: rgba(0, 0, 0, 0.1);
   }
 }
 
-// Textarea auto-resize
-.auto-resize {
-  resize: none;
-  overflow: hidden;
-  min-height: 40px;
-}
 // Layout en 3 colonnes
 .three-column-row {
   display: grid;
@@ -710,28 +703,6 @@ $shadow-color: rgba(0, 0, 0, 0.1);
   }
 }
 
-// Responsive
-@media (max-width: 1200px) {
-  .three-column-row {
-    grid-template-columns: 1fr;
+.new-row {
+    grid-column: 1 / -1;
   }
-  
-  .second-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .three-column-row,
-  .second-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .meditation-controls {
-    flex-direction: column;
-    
-    .meditation-button {
-      width: 100%;
-    }
-  }
-}

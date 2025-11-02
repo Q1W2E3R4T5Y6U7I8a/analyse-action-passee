@@ -812,11 +812,10 @@ const meditationTracks = [
             </div>
           </div>
 
-          {/* ESPACE ENTRE DAILY TASKS ET DAILY REFLECTIONS */}
-          <div style={{ height: '40px' }}></div>
 
           {/* NOUVELLE LIGNE - Daily Reflections et tout le reste */}
           <div className="new-row">
+          <div className="three-column-row">
             <div className="section-box insights-section">
               <h3 className="section-subtitle">Daily Reflections</h3>
               <div className="insights-grid">
@@ -868,17 +867,17 @@ const meditationTracks = [
                         setEntry(prev => ({ ...prev, habits: newHabits }));
                       }}
                     />
-                    <AutoResizeTextarea
+                   <AutoResizeTextarea
                       value={habit.text}
-                      onChange={e => {
+                      onChange={(value) => {
                         const newHabits = [...entry.habits];
                         const habitIndex = newHabits.findIndex(h => h.id === habit.id);
-                        newHabits[habitIndex].text = e.target.value;
+                        newHabits[habitIndex].text = value;
                         setEntry(prev => ({ ...prev, habits: newHabits }));
                       }}
                       placeholder="Enter habit..."
                       className="habit-input"
-                    />
+                  />
                     <button 
                       className="delete-habit"
                       onClick={() => deleteHabit(habit.id)}
@@ -917,6 +916,7 @@ const meditationTracks = [
                 className="mit-input"
               />
             </div>
+          </div>
           </div>
         </div>
 

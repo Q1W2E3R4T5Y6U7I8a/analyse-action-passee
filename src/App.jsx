@@ -4,7 +4,7 @@ import GoalTracker from './components/GoalTracker';
 import Statistics from './components/Statistics';
 import './App.scss';
 import Dreams from './components/Dreams'; 
-import Insights from './Insights'; 
+import Constitution from './components/Constitution';
 
 function App() {
   const [page, setPage] = useState('daily');
@@ -58,13 +58,14 @@ function App() {
             <span className="nav-text">Trading</span>
           </button>
 
-          <button
-            onClick={() => setPage('insights')}
-            className={`nav-button ${page === 'insights' ? 'active' : ''}`}
+          <button 
+            onClick={() => setPage('constitution')}
+            className={`nav-button ${page === 'constitution' ? 'active' : ''}`}
           >
-            <span className="nav-icon">🔍</span>
-            <span className="nav-text">Insights</span>
+            <span className="nav-icon">📝</span>
+            <span className="nav-text">Constitution</span>
           </button>
+
         </div>
       </nav>
 
@@ -73,7 +74,8 @@ function App() {
         {page === 'daily' && <DailyEntry />}
         {page === 'goals' && <GoalTracker />}
         {page === 'stats' && <Statistics />}
-         {page === 'insights' && <Insights />}
+        {page === 'constitution' && <Constitution />}
+
       </main>
     </div>
   );
