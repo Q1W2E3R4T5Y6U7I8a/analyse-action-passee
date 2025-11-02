@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Draggable, Droppable, DragDropContext } from 'react-beautiful-dnd';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvent } from 'react-leaflet';
+
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './Dreams.scss';
@@ -222,6 +223,15 @@ const Dreams = () => {
     };
     reader.readAsText(file);
   };
+
+const AddMarkerOnClick = ({ isAddingMarker, addMarker }) => {
+  const map = useMapEvent('click', (e) => {
+    if (isAddingMarker) {
+      addMarker(e);
+    }
+  });
+  return null;
+};
 
   // Save to localStorage
   useEffect(() => {
@@ -617,7 +627,7 @@ const Dreams = () => {
             zoom={3} 
             style={{ height: '500px', width: '100%' }}
             ref={mapRef}
-            onClick={handleMapClick}
+
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -636,18 +646,17 @@ const Dreams = () => {
                   }
                 }}
               >
-                <Popup>
+                 <Popup>
                   <div className="marker-popup">
                     <h4>{marker.content}</h4>
                     <p>Status: {marker.status}</p>
                     <p>Category: {marker.category} {getCategoryIcon(marker.category)}</p>
-                    <button onClick={() => {
-                      setEditingMarker(marker);
-                    }}>Edit</button>
+                    <button onClick={() => setEditingMarker(marker)}>Edit</button>
                   </div>
                 </Popup>
               </Marker>
             ))}
+            <AddMarkerOnClick isAddingMarker={isAddingMarker} addMarker={addMarker} />
           </MapContainer>
         </div>
       </div>

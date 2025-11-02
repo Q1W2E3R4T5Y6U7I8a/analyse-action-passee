@@ -39,7 +39,7 @@ function App() {
             className={`nav-button ${page === 'dreams' ? 'active' : ''}`}
           >
             <span className="nav-icon">✨</span>
-            <span className="nav-text">Goals/Achivements/Dreams</span>
+            <span className="nav-text">Dreams</span>
           </button>
           
           <button
