@@ -31,7 +31,8 @@ const initialState = {
   pomodorosHistory: {
     '30': 0,
     '45': 0,
-    '60': 0
+    '60': 0,
+    'custom': 0
   },
   energy: {
     air: null,
@@ -50,6 +51,42 @@ const initialState = {
     { id: 3, text: 'Review client feedback', completed: false },
   ],
   mostImportantTask: ''
+};
+
+// URL de ton Google Apps Script
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGBuCB6ZbuPJy0UEPN1UTkADKhO9zSdTbi28vzKhFrtQ2rj7mTUk3US3o_4-lsZ5ZVOg/exec';
+
+// Fonction pour sauvegarder dans Google Sheets
+const saveToGoogleSheets = async (entry) => {
+  try {
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'dailyEntry',
+        date: entry.date,
+        efficiency: entry.efficiency || 0,
+        productivity: entry.productivity || 0,
+        happiness: entry.happiness || 0,
+        pomodoros: entry.pomodoros || 0,
+        energy: entry.energy || {},
+        victory: entry.victory || '',
+        loss: entry.loss || '',
+        insight: entry.insight || '',
+        mostImportantTask: entry.mostImportantTask || '',
+        habits: entry.habits || [],
+        todos: entry.todos || []
+      })
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving to Google Sheets:', error);
+    throw error;
+  }
 };
 
 const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus }) => {
@@ -85,11 +122,25 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus
 export default function DailyEntry() {
   const [entry, setEntry] = useState(initialState);
   const [history, setHistory] = useState([]);
-  const [timer, setTimer] = useState(null);
-  const [isPomodoroActive, setIsPomodoroActive] = useState(false);
   const [audio, setAudio] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [newTodoId, setNewTodoId] = useState(null);
+  const [syncStatus, setSyncStatus] = useState('');
+
+  // États unifiés pour le Pomodoro
+  const [isPomodoroActive, setIsPomodoroActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [pomodoroDuration, setPomodoroDuration] = useState(45); // Durée par défaut en minutes
+  const [timerEndTime, setTimerEndTime] = useState(null);
+  const timerRef = useRef(null);
+
+  const tracks = [
+    "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_1.mp3",
+    "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_2.mp3",
+    "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_3.mp3",
+    "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_4.mp3",
+    "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_5.mp3"
+  ];
 
   const changeDateBy = useCallback((days) => {
     const parsedDate = parse(entry.date, 'dd/MM/yyyy', new Date());
@@ -124,6 +175,19 @@ export default function DailyEntry() {
         }
     );
   }, [entry.date, history]);
+
+  // Fonction pour synchroniser avec Google Sheets
+  const syncWithGoogleSheets = async () => {
+    try {
+      setSyncStatus('Synchronisation...');
+      await saveToGoogleSheets(entry);
+      setSyncStatus('✅ Données sauvegardées dans Google Sheets!');
+      setTimeout(() => setSyncStatus(''), 3000);
+    } catch (error) {
+      setSyncStatus('❌ Erreur de synchronisation');
+      setTimeout(() => setSyncStatus(''), 3000);
+    }
+  };
 
   // Auto-save whenever entry changes
   useEffect(() => {
@@ -181,27 +245,47 @@ export default function DailyEntry() {
     }
   }, []);
 
-  // Pomodoro timer effect
+  // Timer effect unifié
   useEffect(() => {
-    let countdown;
-    
-    if (timer !== null && timer > 0) {
-      countdown = setInterval(() => {
-        setTimer(prev => {
-          if (prev <= 1) {
-            clearInterval(countdown);
-            handlePomodoroEnd();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (isPomodoroActive && timerEndTime) {
+      timerRef.current = setInterval(() => {
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((timerEndTime - now) / 1000));
+        
+        setTimeLeft(remaining);
+        
+        // Mettre à jour le titre de la page
+        document.title = `${formatTime(remaining)} - Pomodoro Timer`;
+        
+        if (remaining === 0) {
+          handlePomodoroEnd();
+        }
+      }, 100); // Vérifier plus fréquemment pour plus de précision
     }
-  
+
     return () => {
-      if (countdown) clearInterval(countdown);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     };
-  }, [timer, isPomodoroActive]);
+  }, [isPomodoroActive, timerEndTime]);
+
+  // Gérer le changement de visibilité de la page pour la précision du timer
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isPomodoroActive && timerEndTime) {
+        const remaining = Math.max(0, Math.floor((timerEndTime - Date.now()) / 1000));
+        setTimeLeft(remaining);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.title = 'Daily Entry'; // Réinitialiser le titre quand le composant se démonte
+    };
+  }, [isPomodoroActive, timerEndTime]);
 
   // Audio cleanup
   useEffect(() => {
@@ -209,6 +293,7 @@ export default function DailyEntry() {
       if (audio) {
         audio.pause();
       }
+      document.title = 'Daily Entry';
     };
   }, [audio]);
 
@@ -235,36 +320,54 @@ export default function DailyEntry() {
     handleChange('date', `${day}/${month}/${year}`);
   };
 
+  // Fonctions unifiées pour le Pomodoro
   const startPomodoro = (duration) => {
+    const durationInMinutes = typeof duration === 'number' ? duration : pomodoroDuration;
+    const durationInSeconds = durationInMinutes * 60;
+    
     setIsPomodoroActive(true);
-    setEntry(prev => ({
-      ...prev,
-      pomodoroDuration: duration
-    }));
-    setTimer(duration * 60);
+    setTimeLeft(durationInSeconds);
+    setTimerEndTime(Date.now() + durationInSeconds * 1000);
+    
+    if (typeof duration === 'number') {
+      setPomodoroDuration(duration);
+    }
   };
 
   const handlePomodoroEnd = () => {
-    const duration = entry.pomodoroDuration.toString();
-  
+    clearInterval(timerRef.current);
+    setIsPomodoroActive(false);
+    document.title = 'Daily Entry';
+
+    // Calculer le nombre de pomodoros (45min = 1 pomodoro)
+    const pomodoroUnits = pomodoroDuration / 45;
+
     setEntry(prev => ({
       ...prev,
-      pomodoros: (prev.pomodoros || 0) + 1,
+      pomodoros: parseFloat(((prev.pomodoros || 0) + pomodoroUnits).toFixed(2)),
       pomodorosHistory: {
         ...prev.pomodorosHistory,
-        [duration]: (prev.pomodorosHistory?.[duration] || 0) + 1
+        [pomodoroDuration]: parseFloat(((prev.pomodorosHistory?.[pomodoroDuration] || 0) + pomodoroUnits).toFixed(2))
       }
     }));
-  
+
     if (!isMuted) {
-      const randomTrack = Math.floor(Math.random() * 3) + 1;
-      const newAudio = new Audio(`/timer_music_${randomTrack}.mp3`);
+      const randomTrack = Math.floor(Math.random() * tracks.length);
+      const newAudio = new Audio(tracks[randomTrack]);
       newAudio.play();
       setAudio(newAudio);
     }
-  
+  };
+
+  const cancelPomodoro = () => {
+    clearInterval(timerRef.current);
     setIsPomodoroActive(false);
-    setTimer(null);
+    setTimeLeft(0);
+    document.title = 'Daily Entry';
+    
+    if (audio) {
+      audio.pause();
+    }
   };
 
   const toggleMute = () => {
@@ -276,92 +379,6 @@ export default function DailyEntry() {
       }
     }
     setIsMuted(!isMuted);
-  };
-  //#POMODORO
-  const [customTimeLeft, setCustomTimeLeft] = useState(60 * 60); // 60 minutes in seconds
-  const [isCustomPomodoroActive, setIsCustomPomodoroActive] = useState(false);
-  const [customTimerEndTime, setCustomTimerEndTime] = useState(null);
-  const customTimerRef = useRef(null);
-   const startCustomPomodoro = () => {
-    setIsCustomPomodoroActive(true);
-    const endTime = Date.now() + 60 * 60 * 1000; // 60 minutes from now
-    setCustomTimerEndTime(endTime);
-    setCustomTimeLeft(60 * 60);
-    
-    // Start the timer
-    customTimerRef.current = setInterval(() => {
-      const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-      setCustomTimeLeft(remaining);
-      
-      // Update tab title with time remaining
-      document.title = `${formatTime(remaining)} - Pomodoro Timer`;
-      
-      if (remaining === 0) {
-        handleCustomPomodoroEnd();
-      }
-    }, 1000);
-  };
-  
-  const tracks = [
-    "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_1.mp3",
-  "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_2.mp3",
-  "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_3.mp3",
-  "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_4.mp3",
-  "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_5.mp3"
-];
-
-const handleCustomPomodoroEnd = () => {
-  clearInterval(customTimerRef.current);
-  setIsCustomPomodoroActive(false);
-
-  // Reset tab title
-  document.title = 'Daily Entry';
-
-  if (!isMuted) {
-        const randomTrack = Math.floor(Math.random() * tracks.length);
-    const newAudio = new Audio(tracks[randomTrack]);
-    newAudio.play();
-    setAudio(newAudio);
-  }
-};
-
-   const cancelCustomPomodoro = () => {
-    clearInterval(customTimerRef.current);
-    setIsCustomPomodoroActive(false);
-    setCustomTimeLeft(60 * 60);
-    
-    // Reset tab title
-    document.title = 'Daily Entry';
-    
-    if (audio) {
-      audio.pause();
-    }
-  };
-  
-  // Add this useEffect to handle tab visibility changes
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isCustomPomodoroActive && customTimerEndTime) {
-        // Recalculate time left when tab becomes visible again
-        const remaining = Math.max(0, Math.floor((customTimerEndTime - Date.now()) / 1000));
-        setCustomTimeLeft(remaining);
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isCustomPomodoroActive, customTimerEndTime]);
-  //##################
-
-  const cancelPomodoro = () => {
-    setIsPomodoroActive(false);
-    setTimer(null);
-    if (audio) {
-      audio.pause();
-    }
   };
 
   const formatTime = (seconds) => {
@@ -437,23 +454,168 @@ const handleCustomPomodoroEnd = () => {
 
   return (
     <div className="daily-entry">
-      <div className="custom-pomodoro-timer">
-        {isCustomPomodoroActive ? (
-          <>
-            <div className="timer-display">{formatTime(customTimeLeft)}</div>
-            <button onClick={cancelCustomPomodoro} className="cancel-pomodoro">
-              Cancel
-            </button>
-            <button onClick={toggleMute} className="mute-button">
-              {isMuted ? '🔇' : '🔊'}
-            </button>
-          </>
-        ) : (
-          <button onClick={startCustomPomodoro} className="start-pomodoro">
-            Start 60m Pomodoro
-          </button>
+      {/* Bouton de synchronisation */}
+      <div className="sync-section" style={{ marginBottom: '20px', textAlign: 'center' }}>
+        <button 
+          onClick={syncWithGoogleSheets}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#4285f4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontSize: '16px'
+          }}
+        >
+          💾 Sauvegarder dans Google Sheets
+        </button>
+        {syncStatus && (
+          <div style={{ 
+            marginTop: '10px', 
+            padding: '10px',
+            backgroundColor: syncStatus.includes('✅') ? '#4CAF50' : '#ff4444',
+            color: 'white',
+            borderRadius: '5px'
+          }}>
+            {syncStatus}
+          </div>
         )}
       </div>
+
+      {/* Section Pomodoro unifiée */}
+      <div className="pomodoro-section" style={{ 
+        marginBottom: '20px', 
+        padding: '20px', 
+        backgroundColor: '#f5f5f5', 
+        borderRadius: '10px',
+        textAlign: 'center'
+      }}>
+        {isPomodoroActive ? (
+          <div className="active-pomodoro">
+            <div className="timer-display" style={{ 
+              fontSize: '48px', 
+              fontWeight: 'bold',
+              marginBottom: '15px'
+            }}>
+              {formatTime(timeLeft)}
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <button onClick={cancelPomodoro} className="cancel-pomodoro" style={{
+                padding: '8px 16px',
+                margin: '0 5px',
+                backgroundColor: '#dc2626',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}>
+                Annuler
+              </button>
+              <button onClick={toggleMute} className="mute-button" style={{
+                padding: '8px 16px',
+                margin: '0 5px',
+                backgroundColor: '#6b7280',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}>
+                {isMuted ? '🔇' : '🔊'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="pomodoro-controls">
+            <div style={{ marginBottom: '15px' }}>
+              <input
+                type="number"
+                min="1"
+                max="180"
+                value={pomodoroDuration}
+                onChange={(e) => setPomodoroDuration(parseInt(e.target.value) || 1)}
+                className="custom-duration-input"
+                style={{
+                  padding: '10px',
+                  marginRight: '10px',
+                  borderRadius: '5px',
+                  border: '1px solid #ccc',
+                  width: '80px',
+                  fontSize: '16px'
+                }}
+              />
+              <button 
+                onClick={() => startPomodoro()} 
+                className="start-pomodoro"
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                Start {pomodoroDuration}m Pomodoro
+              </button>
+            </div>
+            <div style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+              {pomodoroDuration}min = {(pomodoroDuration / 45).toFixed(2)} pomodoro(s)
+            </div>
+            
+            {/* Boutons rapides */}
+            <div className="quick-pomodoros">
+              <button 
+                onClick={() => startPomodoro(30)} 
+                className="pomodoro-button"
+                style={{
+                  padding: '8px 16px',
+                  margin: '0 5px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                30m (0.66)
+              </button>
+              <button 
+                onClick={() => startPomodoro(45)} 
+                className="pomodoro-button"
+                style={{
+                  padding: '8px 16px',
+                  margin: '0 5px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                45m (1.00)
+              </button>
+              <button 
+                onClick={() => startPomodoro(60)} 
+                className="pomodoro-button"
+                style={{
+                  padding: '8px 16px',
+                  margin: '0 5px',
+                  backgroundColor: '#8b5cf6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                60m (1.33)
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      
       <div className="card">
         <div className="section-box date-section">
           <div className="date-controls">
@@ -466,18 +628,6 @@ const handleCustomPomodoroEnd = () => {
             />
             <button type="button" onClick={() => changeDateBy(1)}>Tomorrow &rarr;</button>
           </div>
-
-          {isPomodoroActive && (
-            <div className="pomodoro-timer">
-              <div className="timer-display">{formatTime(timer)}</div>
-              <button onClick={cancelPomodoro} className="cancel-pomodoro">
-                Cancel
-              </button>
-              <button onClick={toggleMute} className="mute-button">
-                {isMuted ? '🔇' : '🔊'}
-              </button>
-            </div>
-          )}
         </div>
 
         <div className="bottom-section">
@@ -515,10 +665,14 @@ const handleCustomPomodoroEnd = () => {
                 <input 
                   type="number" 
                   min="0" 
+                  step="0.01"
                   value={entry.pomodoros} 
-                  onChange={e => handleChange('pomodoros', +e.target.value)}
+                  onChange={e => handleChange('pomodoros', parseFloat(e.target.value))}
                   className="pomodoros-input"
                 />
+                <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                  (45min = 1 pomodoro)
+                </div>
               </div>
             </div>
           </div>
@@ -584,93 +738,59 @@ const handleCustomPomodoroEnd = () => {
             </div>
           </div>
           
-          <div className="section-box todos-section">
-            <h3 className="section-subtitle">Daily Tasks</h3>
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="todos">
-                {(provided) => (
-                  <div 
-                    className="todos-grid"
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                  >
-                    {entry.todos.map((todo, index) => (
-                      <Draggable key={todo.id} draggableId={todo.id.toString()} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`todo-card ${todo.completed ? 'completed' : ''}`}
-                            style={{
-                              ...provided.draggableProps.style,
-                              zIndex: entry.todos.length - index,
-                              minHeight: '60px'
-                            }}
-                          >
-                            <div className="todo-drag-handle" {...provided.dragHandleProps}>
-                              ≡
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={todo.completed}
-                              onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
-                              className="todo-checkbox"
-                            />
-                            <AutoResizeTextarea
-                              value={todo.text}
-                              onChange={(e) => handleTodoChange(todo.id, 'text', e.target.value)}
-                              placeholder="Enter a task..."
-                              className="todo-input"
-                              autoFocus={todo.id === newTodoId}
-                            />
-                            <div className="todo-priority-buttons">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  moveTodo(todo.id, 'up');
-                                }}
-                                disabled={index === 0}
-                                className="priority-button"
-                              >
-                                ↑
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  moveTodo(todo.id, 'down');
-                                }}
-                                disabled={index === entry.todos.length - 1}
-                                className="priority-button"
-                              >
-                                ↓
-                              </button>
-                            </div>
-                            <button 
-                              className="delete-todo"
-                              onClick={() => deleteTodo(todo.id)}
-                            >
-                              ×
-                            </button>
-                            {todo.completed && (
-                              <span className="completed-icon">✓</span>
-                            )}
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                    <button 
-                      className="add-todo-button"
-                      onClick={addNewTodo}
-                    >
-                      + Add Task
-                    </button>
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          </div>
+         <div className="section-box todos-section">
+  <h3 className="section-subtitle">Daily Tasks</h3>
+  <div className="todos-grid">
+    {entry.todos.map((todo, index) => (
+      <div key={todo.id} className={`todo-card ${todo.completed ? 'completed' : ''}`}>
+        <input
+          type="checkbox"
+          checked={todo.completed || false}
+          onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
+          className="todo-checkbox"
+        />
+        <AutoResizeTextarea
+          value={todo.text || ''}
+          onChange={(e) => handleTodoChange(todo.id, 'text', e.target.value)}
+          placeholder="Enter a task..."
+          className="todo-input"
+          autoFocus={todo.id === newTodoId}
+        />
+        <div className="todo-priority-buttons">
+          <button 
+            onClick={() => moveTodo(todo.id, 'up')}
+            disabled={index === 0}
+            className="priority-button"
+          >
+            ↑
+          </button>
+          <button 
+            onClick={() => moveTodo(todo.id, 'down')}
+            disabled={index === entry.todos.length - 1}
+            className="priority-button"
+          >
+            ↓
+          </button>
+        </div>
+        <button 
+          className="delete-todo"
+          onClick={() => deleteTodo(todo.id)}
+        >
+          ×
+        </button>
+        {todo.completed && (
+          <span className="completed-icon">✓</span>
+        )}
+      </div>
+    ))}
+    <button 
+      className="add-todo-button"
+      onClick={addNewTodo}
+    >
+      + Add Task
+    </button>
+  </div>
+</div>
           
           <div className="section-box habits-section">
             <h3 className="section-subtitle">Habits Tracker</h3>
@@ -736,25 +856,14 @@ const handleCustomPomodoroEnd = () => {
             <textarea
               value={entry.mostImportantTask || ''}
               onChange={(e) => handleChange('mostImportantTask', e.target.value)}
-              placeholder="What’s the single, most important task you will dedicate at least 4–6 hours to?"
+              placeholder="What's the single, most important task you will dedicate at least 4–6 hours to?"
               className="mit-input"
               rows={4}
               style={{ width: '100%', marginTop: '12px', fontSize: '16px' }}
             />
           </div>
-          <iframe
-                style={{ width: '100%', maxWidth: '360px', height: '360px' }}
-                src="https://pomofocus.io/app"
-                frameBorder="0"
-              />
-              <iframe
-                style={{ width: '100%', maxWidth: '360px', height: '360px' }}
-                src="https://stopwatch-app.com/widget/stopwatch?theme=light&color=indigo"
-                frameBorder="0"
-              />
-      
+          
         </div>
-        
       </div>
     </div>
   );

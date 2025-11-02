@@ -1,32 +1,63 @@
+// Variables de couleurs
+$primary-color: #1691D9;
+$secondary-color: #FFB908;
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$danger-color: #ef4444;
+
+$background-color: #f8fafc;
+$card-background: #4a6fa5;
+$text-color: #1e293b;
+$border-color: #e2e8f0;
+$shadow-color: rgba(0, 0, 0, 0.1);
+
+// Styles principaux
 .daily-entry {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-  
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: $background-color;
+  min-height: 100vh;
+  color: $text-color;
+
   .card {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    background: $card-background;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px $shadow-color;
     overflow: hidden;
   }
-  
-  .section-box {
-    padding: 20px;
-    margin-bottom: 20px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+
+  // Section de synchronisation
+  .sync-section {
+    margin-bottom: 30px;
+    text-align: center;
     
-    &.date-section {
-      background: linear-gradient(120deg, #10f797, #2575fc);
+    button {
+      background: $primary-color;
+      padding: 16px 32px;
+      border: none;
+      border-radius: 8px;
       color: white;
-      padding: 15px 20px;
-      border-radius: 0 0 20px 20px;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: darken($primary-color, 10%);
+      }
     }
   }
-  
+
+  // Section de date
+  .date-section {
+    background: $primary-color;
+    color: white;
+    padding: 20px;
+    border-radius: 0 0 12px 12px;
+  }
+
   .date-controls {
     display: flex;
     justify-content: space-between;
@@ -37,15 +68,13 @@
       background: rgba(255, 255, 255, 0.2);
       border: none;
       padding: 10px 15px;
-      border-radius: 30px;
+      border-radius: 6px;
       color: white;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
       
       &:hover {
         background: rgba(255, 255, 255, 0.3);
-        transform: translateY(-2px);
       }
     }
     
@@ -54,7 +83,7 @@
       max-width: 250px;
       padding: 10px 15px;
       border: none;
-      border-radius: 30px;
+      border-radius: 6px;
       background: rgba(255, 255, 255, 0.2);
       color: white;
       font-weight: 500;
@@ -65,18 +94,29 @@
       }
     }
   }
-  
+
+  // Section principale
   .bottom-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 20px;
     padding: 20px;
   }
-  
+
+  .section-box {
+    background: $card-background;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border: 1px solid $border-color;
+    box-shadow: 0 2px 4px $shadow-color;
+  }
+
   .section-subtitle {
     font-size: 1.2rem;
     margin-bottom: 15px;
-    color: #495057;
+    color: $text-color;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -85,46 +125,47 @@
       content: "";
       height: 2px;
       flex: 1;
-      background: linear-gradient(to right, #6a11cb, #2575fc);
+      background: $primary-color;
     }
     
     &::after {
       content: "";
       height: 2px;
       flex: 1;
-      background: linear-gradient(to left, #6a11cb, #2575fc);
+      background: $primary-color;
     }
   }
-  
+
+  // Grille des métriques
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
   }
-  
+
   .metric-card {
-    background: #f8f9fa;
-    border-radius: 12px;
+    background: lighten($background-color, 2%);
+    border-radius: 8px;
     padding: 15px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid $border-color;
   }
-  
+
   .metric-label {
     display: flex;
     justify-content: space-between;
     font-weight: 600;
     margin-bottom: 10px;
   }
-  
+
   .metric-value {
     font-weight: 700;
   }
-  
+
   .metric-slider {
     width: 100%;
     height: 8px;
     border-radius: 4px;
-    background: linear-gradient(to right, #dc2626, #f59e0b, #10b981);
+    background: linear-gradient(90deg, #dc2626, #f59e0b, #10b981);
     outline: none;
     
     &::-webkit-slider-thumb {
@@ -132,49 +173,51 @@
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background: #495057;
+      background: $primary-color;
       cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      border: 2px solid white;
+      box-shadow: 0 2px 4px $shadow-color;
     }
   }
-  
+
   .slider-labels {
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
-    color: #6c757d;
+    color: #6b7280;
     margin-top: 5px;
   }
-  
+
+  // Grille d'énergie
   .energy-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 15px;
   }
-  
+
   .energy-card {
-    background: #f8f9fa;
-    border-radius: 12px;
+    background: lighten($background-color, 2%);
+    border-radius: 8px;
     padding: 15px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid $border-color;
   }
-  
+
   .energy-label {
     display: flex;
     justify-content: space-between;
     font-weight: 600;
     margin-bottom: 10px;
   }
-  
+
   .energy-value {
     font-weight: 700;
   }
-  
+
   .energy-slider {
     width: 100%;
     height: 8px;
     border-radius: 4px;
-    background: linear-gradient(to right, #dc2626, #f59e0b, #10b981);
+    background: linear-gradient(90deg, #dc2626, #f59e0b, #10b981);
     outline: none;
     
     &::-webkit-slider-thumb {
@@ -182,184 +225,221 @@
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: #495057;
+      background: $primary-color;
       cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      border: 2px solid white;
+      box-shadow: 0 2px 4px $shadow-color;
     }
   }
-  
+
+  // Grille des insights
   .insights-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 15px;
   }
-  
+
   .insight-card {
-    background: #f8f9fa;
-    border-radius: 12px;
+    background: lighten($background-color, 2%);
+    border-radius: 8px;
     padding: 15px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid $border-color;
     
     &.victory-card {
-      border-top: 4px solid #10b981;
+      border-top: 4px solid $success-color;
     }
     
     &.loss-card {
-      border-top: 4px solid #f59e0b;
+      border-top: 4px solid $warning-color;
     }
     
     &.insight-card {
-      border-top: 4px solid #3b82f6;
+      border-top: 4px solid $primary-color;
     }
   }
-  
+
   .input-label {
     display: block;
     font-weight: 600;
     margin-bottom: 10px;
     
     .required {
-      color: #dc2626;
+      color: $danger-color;
     }
   }
-  
+
   .insight-textarea {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid $border-color;
+    border-radius: 6px;
     resize: vertical;
     min-height: 100px;
     font-family: inherit;
+    background: white;
     
     &:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      border-color: $primary-color;
     }
   }
-  
+
+  // Section TODOS
   .todos-grid {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .todo-card {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 12px 15px;
     background: white;
-    border-radius: 10px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-    position: relative;
-    transition: all 0.3s ease;
+    border-radius: 8px;
+    border: 1px solid $border-color;
     
     &.completed {
-      background: #f0fdf4;
+      background: lighten($success-color, 45%);
       
       .todo-input {
         text-decoration: line-through;
-        color: #65a30d;
+        color: $success-color;
       }
     }
   }
-  
+
   .todo-checkbox {
     width: 20px;
     height: 20px;
     cursor: pointer;
+    accent-color: $success-color;
   }
-  
+
   .todo-input {
     flex: 1;
     padding: 8px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
+    border: 1px solid $border-color;
+    border-radius: 4px;
     font-family: inherit;
+    background: white;
     
     &:focus {
       outline: none;
-      border-color: #3b82f6;
+      border-color: $primary-color;
     }
   }
-  
+
+  .todo-priority-buttons {
+    display: flex;
+    gap: 5px;
+    
+    .priority-button {
+      background: lighten($background-color, 2%);
+      border: 1px solid $border-color;
+      color: $text-color;
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &:hover:not(:disabled) {
+        background: $primary-color;
+        color: white;
+      }
+      
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+    }
+  }
+
   .delete-todo, .delete-habit {
-    background: #fee2e2;
-    border: none;
+    background: lighten($danger-color, 40%);
+    border: 1px solid lighten($danger-color, 30%);
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    color: #dc2626;
+    color: $danger-color;
     font-weight: bold;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
     
     &:hover {
-      background: #fecaca;
-      transform: scale(1.1);
+      background: lighten($danger-color, 30%);
     }
   }
-  
+
   .completed-icon {
-    color: #65a30d;
+    color: $success-color;
     font-weight: bold;
     margin-left: 10px;
   }
-  
+
   .add-todo-button, .add-habit-button {
-    background: #dbeafe;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 30px;
-    color: #3b82f6;
+    background: lighten($primary-color, 40%);
+    border: 1px solid lighten($primary-color, 30%);
+    padding: 12px 15px;
+    border-radius: 6px;
+    color: $primary-color;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.3s ease;
     
     &:hover {
-      background: #bfdbfe;
-      transform: translateY(-2px);
+      background: lighten($primary-color, 30%);
     }
   }
-  
+
+  // Section Habitudes
   .habits-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .habit-item {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 12px 15px;
     background: white;
-    border-radius: 10px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    border: 1px solid $border-color;
+    
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: $secondary-color;
+    }
   }
-  
+
   .habit-input {
     flex: 1;
     padding: 8px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
+    border: 1px solid $border-color;
+    border-radius: 4px;
     font-family: inherit;
+    background: white;
     
     &:focus {
       outline: none;
-      border-color: #3b82f6;
+      border-color: $secondary-color;
     }
   }
-  
+
+  // Timer Pomodoro
   .pomodoro-timer {
     margin-top: 15px;
     display: flex;
@@ -367,187 +447,150 @@
     gap: 15px;
     background: rgba(255, 255, 255, 0.2);
     padding: 10px 15px;
-    border-radius: 30px;
+    border-radius: 6px;
     justify-content: center;
   }
-  
+
   .timer-display {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    letter-spacing: 2px;
     font-family: 'Courier New', monospace;
   }
-  
+
   .cancel-pomodoro {
-    background: rgba(255, 255, 255, 0.3);
-    border: none;
+    background: lighten($danger-color, 40%);
+    border: 1px solid lighten($danger-color, 30%);
     padding: 8px 15px;
-    border-radius: 30px;
-    color: white;
+    border-radius: 4px;
+    color: $danger-color;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
     
     &:hover {
-      background: rgba(255, 255, 255, 0.4);
+      background: lighten($danger-color, 30%);
     }
   }
-  
+
   .mute-button {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     cursor: pointer;
     color: white;
   }
-  
-  .pomodoro-controls {
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+
+  // Pomodoro personnalisé
+  .custom-pomodoro-timer {
+    background: $card-background;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid $border-color;
+    text-align: center;
+    margin-bottom: 20px;
     
-    h3 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      font-size: 1.1rem;
+    .timer-display {
+      font-size: 2rem;
+      margin-bottom: 15px;
     }
-  }
-  
-  .pomodoro-buttons {
-    display: flex;
-    gap: 10px;
     
-    button {
-      flex: 1;
-      padding: 8px;
+    .start-pomodoro {
+      background: $success-color;
       border: none;
-      border-radius: 8px;
-      background: #dbeafe;
-      color: #3b82f6;
+      padding: 12px 24px;
+      border-radius: 6px;
+      color: white;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
       
       &:hover {
-        background: #bfdbfe;
-        transform: translateY(-2px);
+        background: darken($success-color, 10%);
       }
     }
   }
-  
+
+  // Section MIT (Most Important Task)
+  .mit-section {
+    background: lighten($warning-color, 45%);
+    border: 2px dashed lighten($warning-color, 20%);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    
+    h3.section-subtitle {
+      font-size: 1.1rem;
+      text-align: center;
+      margin-bottom: 15px;
+      
+      &::before, &::after {
+        background: $warning-color;
+      }
+    }
+    
+    .mit-input {
+      width: 100%;
+      border: 1px solid lighten($warning-color, 20%);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: white;
+      
+      &:focus {
+        outline: none;
+        border-color: $warning-color;
+      }
+    }
+  }
+
+  // Cartes spéciales
   .pomodoros-card {
     display: flex;
     flex-direction: column;
   }
-  
+
   .pomodoros-input {
-    padding: 8px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid $border-color;
+    border-radius: 6px;
     font-family: inherit;
-    width: 100%;
+    background: white;
     
     &:focus {
       outline: none;
-      border-color: #3b82f6;
+      border-color: $primary-color;
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 768px) {
+    padding: 15px;
+    
+    .bottom-section {
+      grid-template-columns: 1fr;
+      gap: 15px;
+      padding: 15px;
+    }
+    
+    .date-controls {
+      flex-direction: column;
+      gap: 10px;
+      
+      .date-picker {
+        max-width: 100%;
+      }
+    }
+    
+    .metrics-grid,
+    .energy-grid,
+    .insights-grid {
+      grid-template-columns: 1fr;
     }
   }
 }
+
+// Textarea auto-resize
 .auto-resize {
   resize: none;
-}
-
-
-////////
-/// 
-/// 
-/// 
-/// 
-/// 
-/// 
-.mit-section {
-  background: #f8fafc;
-  border: 2px dashed #ffe924;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-top: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-
-  h3.section-subtitle {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #7c3aed;
-    margin-bottom: 1rem;
-  }
-
-  .mit-input {
-    width: 100%;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 12px 14px;
-    font-size: 1rem;
-    font-family: inherit;
-    background-color: #fff;
-    color: #1e293b;
-    transition: border-color 0.2s, box-shadow 0.2s;
-
-    &:focus {
-      outline: none;
-      border-color: #42a4ff;
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.3);
-    }
-
-    &::placeholder {
-      color: #94a3b8;
-      font-style: italic;
-    }
-  }
-}
-
-.custom-pomodoro-section {
-  margin-top: 20px;
-  text-align: center;
-  
-  .custom-pomodoro-timer {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    
-    .timer-display {
-      font-size: 2.5rem;
-      font-weight: bold;
-      color: #dc2626;
-    }
-    
-    .start-pomodoro {
-      background-color: #10b981;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      
-      &:hover {
-        background-color: #059669;
-      }
-    }
-    
-    .cancel-pomodoro {
-      background-color: #ef4444;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 5px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      
-      &:hover {
-        background-color: #dc2626;
-      }
-    }
-  }
+  overflow: hidden;
+  min-height: 40px;
 }
