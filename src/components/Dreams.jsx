@@ -4,7 +4,6 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './Dreams.scss';
-import { useMapEvent } from 'react-leaflet';
 
 // Fix for default markers in leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -48,7 +47,76 @@ const Dreams = () => {
   const [isAddingMarker, setIsAddingMarker] = useState(false);
   const mapRef = useRef(null);
 
-  // Function to parse date and get sortable value
+  // Function to extract and parse date from content like "Description (2019)" or "Description (2019 April)"
+  const extractDateFromContent = (content) => {
+    if (!content) return { sortValue: Infinity, original: '', isValidFormat: false };
+    
+    // Match patterns like (2019) or (2019 April) or (2024 March)
+    const dateMatch = content.match(/\((\d{4})(?:\s+([a-zA-Z]+))?\)/);
+    
+    if (dateMatch) {
+      const year = parseInt(dateMatch[1]);
+      const monthName = dateMatch[2] ? dateMatch[2].toLowerCase() : null;
+      
+      if (monthName) {
+        const months = [
+          'january', 'february', 'march', 'april', 'may', 'june',
+          'july', 'august', 'september', 'october', 'november', 'december'
+        ];
+        const monthIndex = months.indexOf(monthName);
+        if (monthIndex !== -1) {
+          return { 
+            sortValue: year + (monthIndex + 1) / 12,
+            original: `(${year} ${monthName.charAt(0).toUpperCase() + monthName.slice(1)})`,
+            isValidFormat: true
+          };
+        }
+      } else {
+        // Just year format
+        return { 
+          sortValue: year,
+          original: `(${year})`,
+          isValidFormat: true
+        };
+      }
+    }
+    
+    // Invalid format - push to bottom
+    return { 
+      sortValue: Infinity, 
+      original: '',
+      isValidFormat: false
+    };
+  };
+
+  // Function to sort markers by date
+  const sortMarkersByDate = (markerList) => {
+    return [...markerList].sort((a, b) => {
+      const dateA = extractDateFromContent(a.content);
+      const dateB = extractDateFromContent(b.content);
+      
+      // Both have valid format dates
+      if (dateA.isValidFormat && dateB.isValidFormat) {
+        // For markers, we'll sort future first (descending) since they're all in one list
+        return dateB.sortValue - dateA.sortValue;
+      }
+      
+      // Only A has valid format
+      if (dateA.isValidFormat && !dateB.isValidFormat) {
+        return -1;
+      }
+      
+      // Only B has valid format
+      if (!dateA.isValidFormat && dateB.isValidFormat) {
+        return 1;
+      }
+      
+      // Neither has valid format - keep original order
+      return 0;
+    });
+  };
+
+  // Function to parse date and get sortable value for dreams
   const parseDateForSorting = (dateString) => {
     if (!dateString || !dateString.trim()) return { sortValue: Infinity, original: dateString };
     
@@ -133,8 +201,6 @@ const Dreams = () => {
     link.click();
     URL.revokeObjectURL(url);
   };
-
-
 
   const importFromJson = (e) => {
     const file = e.target.files[0];
@@ -321,15 +387,6 @@ const Dreams = () => {
     setNewMarker({ content: '', status: 'future', category: 'art' });
   };
 
-    const AddMarkerOnClick = ({ isAddingMarker, newMarker, addMarker }) => {
-  useMapEvent('click', (e) => {
-    if (isAddingMarker && newMarker.content.trim()) {
-      addMarker(e);
-    }
-  });
-  return null;
-};
-
   return (
     <div className="dreams-app">
       <header className="app-header">
@@ -380,7 +437,7 @@ const Dreams = () => {
           />
           <input
             type="text"
-            placeholder="Date (e.g., '2025' or '2025 April')"
+            placeholder="Date (e.g., '2025' or '2025 April' or 'Description (2025)')"
             value={newDream.date}
             onChange={(e) => setNewDream({...newDream, date: e.target.value})}
           />
@@ -471,7 +528,7 @@ const Dreams = () => {
             <h3>Add Map Marker</h3>
             <input
               type="text"
-              placeholder="Dream location description"
+              placeholder="Dream location description (e.g., Visit Paris (2025))"
               value={newMarker.content}
               onChange={(e) => setNewMarker({...newMarker, content: e.target.value})}
             />
@@ -517,7 +574,7 @@ const Dreams = () => {
           <div className="marker-list">
             <h3>Your Dream Locations</h3>
             <div className="marker-items">
-              {markers.map(marker => (
+              {sortMarkersByDate(markers).map(marker => (
                 <div key={marker.id} className="marker-item" onClick={() => {
                   setEditingMarker(marker);
                   setMapCenter([marker.lat, marker.lng]);
@@ -560,21 +617,12 @@ const Dreams = () => {
             zoom={3} 
             style={{ height: '500px', width: '100%' }}
             ref={mapRef}
-
+            onClick={handleMapClick}
           >
-
-
-            
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-
-                         <AddMarkerOnClick 
-                isAddingMarker={isAddingMarker} 
-                newMarker={newMarker} 
-                addMarker={addMarker} 
-              />
             
             {markers.map(marker => (
               <Marker 
@@ -589,13 +637,15 @@ const Dreams = () => {
                 }}
               >
                 <Popup>
-        <div className="marker-popup">
-          <h4>{marker.content}</h4>
-          <p>Status: {marker.status}</p>
-          <p>Category: {marker.category} {getCategoryIcon(marker.category)}</p>
-          <button onClick={() => setEditingMarker(marker)}>Edit</button>
-        </div>
-      </Popup>
+                  <div className="marker-popup">
+                    <h4>{marker.content}</h4>
+                    <p>Status: {marker.status}</p>
+                    <p>Category: {marker.category} {getCategoryIcon(marker.category)}</p>
+                    <button onClick={() => {
+                      setEditingMarker(marker);
+                    }}>Edit</button>
+                  </div>
+                </Popup>
               </Marker>
             ))}
           </MapContainer>
@@ -616,7 +666,7 @@ const Dreams = () => {
               type="text"
               value={editingDream.date || ''}
               onChange={(e) => setEditingDream({...editingDream, date: e.target.value})}
-              placeholder="Date (e.g., '2025' or '2025 April')"
+              placeholder="Date (e.g., '2025' or '2025 April' or 'Description (2025)')"
             />
             <select
               value={editingDream.category}
@@ -643,6 +693,7 @@ const Dreams = () => {
               type="text"
               value={editingMarker.content}
               onChange={(e) => setEditingMarker({...editingMarker, content: e.target.value})}
+              placeholder="e.g., Visit Paris (2025)"
             />
             <select
               value={editingMarker.status}
