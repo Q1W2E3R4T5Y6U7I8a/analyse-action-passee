@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './Dreams.scss';
+import { useMapEvent } from 'react-leaflet';
 
 // Fix for default markers in leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -13,6 +14,15 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// Custom marker icons
+const createCustomIcon = (color) => {
+  return L.divIcon({
+    html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+};
+
 const Dreams = () => {
   // State management
   const [dreams, setDreams] = useState(() => {
@@ -20,8 +30,7 @@ const Dreams = () => {
     return savedDreams ? JSON.parse(savedDreams) : {
       past: [],
       present: [],
-      future: [],
-      timeless: []
+      future: []
     };
   });
   
@@ -30,13 +39,13 @@ const Dreams = () => {
     return savedMarkers ? JSON.parse(savedMarkers) : [];
   });
   
-  const [activeTab, setActiveTab] = useState('dreams');
   const [newDream, setNewDream] = useState({ content: '', date: '', category: 'art', column: 'present' });
   const [newMarker, setNewMarker] = useState({ content: '', status: 'future', category: 'art' });
   const [editingDream, setEditingDream] = useState(null);
   const [editingMarker, setEditingMarker] = useState(null);
   const [mapCenter, setMapCenter] = useState([51.505, -0.09]);
   const [filterCategory, setFilterCategory] = useState('all');
+  const [isAddingMarker, setIsAddingMarker] = useState(false);
   const mapRef = useRef(null);
 
   // Function to parse date and get sortable value
@@ -83,17 +92,19 @@ const Dreams = () => {
 
   // Function to sort dreams by date
   const sortDreamsByDate = (dreamList, column) => {
-    if (column === 'timeless' || column === 'past') {
-      return dreamList;
-    }
-    
     return [...dreamList].sort((a, b) => {
       const dateA = parseDateForSorting(a.date);
       const dateB = parseDateForSorting(b.date);
       
       // Both have valid format dates
       if (dateA.isValidFormat && dateB.isValidFormat) {
-        return dateA.sortValue - dateB.sortValue;
+        if (column === 'past') {
+          // For past, show most recent first (descending)
+          return dateB.sortValue - dateA.sortValue;
+        } else {
+          // For present/future, show closest first (ascending)
+          return dateA.sortValue - dateB.sortValue;
+        }
       }
       
       // Only A has valid format
@@ -122,6 +133,8 @@ const Dreams = () => {
     link.click();
     URL.revokeObjectURL(url);
   };
+
+
 
   const importFromJson = (e) => {
     const file = e.target.files[0];
@@ -210,6 +223,7 @@ const Dreams = () => {
     
     setMarkers(prev => [...prev, marker]);
     setNewMarker({ content: '', status: 'future', category: 'art' });
+    setIsAddingMarker(false);
   };
 
   const updateMarker = () => {
@@ -256,7 +270,7 @@ const Dreams = () => {
 
   // Map event handlers
   const handleMapClick = (e) => {
-    if (activeTab === 'map' && newMarker.content) {
+    if (isAddingMarker && newMarker.content.trim()) {
       addMarker(e);
     }
   };
@@ -289,19 +303,32 @@ const Dreams = () => {
 
   // Marker icons
   const getMarkerIcon = (status) => {
-    const iconUrl = status === 'completed' 
-      ? 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-green.png'
-      : status === 'present'
-        ? 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-gold.png'
-        : 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-red.png';
-    
-    return L.icon({
-      iconUrl,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34]
-    });
+    const color = status === 'completed' ? '#4CAF50' : 
+                 status === 'present' ? '#FFC107' : '#F44336';
+    return createCustomIcon(color);
   };
+
+  const startAddingMarker = () => {
+    if (!newMarker.content.trim()) {
+      alert('Please enter a description for the marker first!');
+      return;
+    }
+    setIsAddingMarker(true);
+  };
+
+  const cancelAddingMarker = () => {
+    setIsAddingMarker(false);
+    setNewMarker({ content: '', status: 'future', category: 'art' });
+  };
+
+    const AddMarkerOnClick = ({ isAddingMarker, newMarker, addMarker }) => {
+  useMapEvent('click', (e) => {
+    if (isAddingMarker && newMarker.content.trim()) {
+      addMarker(e);
+    }
+  });
+  return null;
+};
 
   return (
     <div className="dreams-app">
@@ -313,21 +340,6 @@ const Dreams = () => {
           <div className="pillar art">🎨 Art</div>
         </div>
       </header>
-
-      <div className="tab-navigation">
-        <button 
-          className={activeTab === 'dreams' ? 'active' : ''}
-          onClick={() => setActiveTab('dreams')}
-        >
-          Dream Board
-        </button>
-        <button 
-          className={activeTab === 'map' ? 'active' : ''}
-          onClick={() => setActiveTab('map')}
-        >
-          Dream Map
-        </button>
-      </div>
 
       <div className="import-export">
         <button onClick={exportToJson}>Export to JSON</button>
@@ -342,193 +354,227 @@ const Dreams = () => {
         </label>
       </div>
 
-      {activeTab === 'dreams' ? (
-        <div className="dream-board">
-          <div className="app-controls">
-            <div className="category-filter">
-              <label>Filter by Category:</label>
-              <select 
-                value={filterCategory} 
-                onChange={(e) => setFilterCategory(e.target.value)}
-              >
-                <option value="all">All Categories</option>
-                <option value="freedom">Freedom</option>
-                <option value="love">Love</option>
-                <option value="art">Art</option>
-              </select>
-            </div>
+      <div className="dream-board">
+        <div className="app-controls">
+          <div className="category-filter">
+            <label>Filter by Category:</label>
+            <select 
+              value={filterCategory} 
+              onChange={(e) => setFilterCategory(e.target.value)}
+            >
+              <option value="all">All Categories</option>
+              <option value="freedom">Freedom</option>
+              <option value="love">Love</option>
+              <option value="art">Art</option>
+            </select>
           </div>
+        </div>
 
-          <div className="dream-form">
-            <h3>Add New Dream</h3>
+        <div className="dream-form">
+          <h3>Add New Dream</h3>
+          <input
+            type="text"
+            placeholder="Dream content"
+            value={newDream.content}
+            onChange={(e) => setNewDream({...newDream, content: e.target.value})}
+          />
+          <input
+            type="text"
+            placeholder="Date (e.g., '2025' or '2025 April')"
+            value={newDream.date}
+            onChange={(e) => setNewDream({...newDream, date: e.target.value})}
+          />
+          <select
+            value={newDream.category}
+            onChange={(e) => setNewDream({...newDream, category: e.target.value})}
+          >
+            <option value="freedom">Freedom</option>
+            <option value="love">Love</option>
+            <option value="art">Art</option>
+          </select>
+          <select
+            value={newDream.column}
+            onChange={(e) => setNewDream({...newDream, column: e.target.value})}
+          >
+            <option value="past">Past</option>
+            <option value="present">Present</option>
+            <option value="future">Future</option>
+          </select>
+          <button onClick={addDream}>Add Dream</button>
+        </div>
+
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="dreams-grid">
+            {['past', 'present', 'future'].map((column) => (
+              <div key={column} className="dream-column">
+                <h2>
+                  {column.charAt(0).toUpperCase() + column.slice(1)}
+                  {column === 'past' && ' (drag here when completed)'}
+                </h2>
+                <Droppable droppableId={column}>
+                  {(provided) => (
+                    <div 
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="dream-list"
+                    >
+                      {sortDreamsByDate(filterDreams(dreams[column]), column).map((dream, index) => (
+                        <Draggable key={dream.id} draggableId={dream.id.toString()} index={index}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`dream-card ${dream.category} ${
+                                column === 'past' && dream.completed ? 'completed' : ''
+                              }`}
+                            >
+                              <div className="dream-header">
+                                <span className="dream-category">
+                                  {getCategoryIcon(dream.category)}
+                                </span>
+                                <span className="dream-date">{dream.date}</span>
+                                {column === 'past' && (
+                                  <button 
+                                    className={`completion-toggle ${dream.completed ? 'completed' : ''}`}
+                                    onClick={() => toggleDreamCompletion(dream.id)}
+                                  >
+                                    {dream.completed ? '✓' : '✗'}
+                                  </button>
+                                )}
+                                <div className="dream-actions">
+                                  <button onClick={() => setEditingDream(dream)}>✏️</button>
+                                  <button onClick={() => deleteDream(dream.id)}>🗑️</button>
+                                </div>
+                              </div>
+                              <div className="dream-content">
+                                <p>{dream.content}</p>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            ))}
+          </div>
+        </DragDropContext>
+      </div>
+
+      {/* Map Section - Always visible below dreams */}
+      <div className="dream-map-section">
+        <div className="map-controls">
+          <div className="marker-form">
+            <h3>Add Map Marker</h3>
             <input
               type="text"
-              placeholder="Dream content"
-              value={newDream.content}
-              onChange={(e) => setNewDream({...newDream, content: e.target.value})}
-            />
-            <input
-              type="text"
-              placeholder="Date (e.g., '2025' or '2025 April')"
-              value={newDream.date}
-              onChange={(e) => setNewDream({...newDream, date: e.target.value})}
+              placeholder="Dream location description"
+              value={newMarker.content}
+              onChange={(e) => setNewMarker({...newMarker, content: e.target.value})}
             />
             <select
-              value={newDream.category}
-              onChange={(e) => setNewDream({...newDream, category: e.target.value})}
+              value={newMarker.status}
+              onChange={(e) => setNewMarker({...newMarker, status: e.target.value})}
+            >
+              <option value="future">Future (Red)</option>
+              <option value="present">In Progress (Yellow)</option>
+              <option value="completed">Completed (Green)</option>
+            </select>
+            <select
+              value={newMarker.category}
+              onChange={(e) => setNewMarker({...newMarker, category: e.target.value})}
             >
               <option value="freedom">Freedom</option>
               <option value="love">Love</option>
               <option value="art">Art</option>
             </select>
-            <select
-              value={newDream.column}
-              onChange={(e) => setNewDream({...newDream, column: e.target.value})}
-            >
-              <option value="past">Past</option>
-              <option value="present">Present</option>
-              <option value="future">Future</option>
-              <option value="timeless">Timeless</option>
-            </select>
-            <button onClick={addDream}>Add Dream</button>
+            <div className="marker-buttons">
+              {!isAddingMarker ? (
+                <button 
+                  className="start-add-marker"
+                  onClick={startAddingMarker}
+                  disabled={!newMarker.content.trim()}
+                >
+                  Start Adding Marker
+                </button>
+              ) : (
+                <div className="adding-marker-mode">
+                  <span className="adding-text">Click on map to place marker</span>
+                  <button 
+                    className="cancel-add-marker"
+                    onClick={cancelAddingMarker}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          <DragDropContext onDragEnd={onDragEnd}>
-            <div className="dreams-grid">
-              {['past', 'present', 'future', 'timeless'].map((column) => (
-                <div key={column} className="dream-column">
-                  <h2>
-                    {column.charAt(0).toUpperCase() + column.slice(1)}
-                    {column === 'past' && ' (drag here when completed)'}
-                  </h2>
-                  <Droppable droppableId={column}>
-                    {(provided) => (
-                      <div 
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className="dream-list"
-                      >
-                        {sortDreamsByDate(filterDreams(dreams[column]), column).map((dream, index) => (
-                          <Draggable key={dream.id} draggableId={dream.id.toString()} index={index}>
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`dream-card ${dream.category} ${
-                                  column === 'past' && dream.completed ? 'completed' : ''
-                                }`}
-                              >
-                                <div className="dream-header">
-                                  <span className="dream-category">
-                                    {getCategoryIcon(dream.category)}
-                                  </span>
-                                  <span className="dream-date">{dream.date}</span>
-                                  {column === 'past' && (
-                                    <button 
-                                      className={`completion-toggle ${dream.completed ? 'completed' : ''}`}
-                                      onClick={() => toggleDreamCompletion(dream.id)}
-                                    >
-                                      {dream.completed ? '✓' : '✗'}
-                                    </button>
-                                  )}
-                                  <div className="dream-actions">
-                                    <button onClick={() => setEditingDream(dream)}>✏️</button>
-                                    <button onClick={() => deleteDream(dream.id)}>🗑️</button>
-                                  </div>
-                                </div>
-                                <div className="dream-content">
-                                  <p>{dream.content}</p>
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
+          <div className="marker-list">
+            <h3>Your Dream Locations</h3>
+            <div className="marker-items">
+              {markers.map(marker => (
+                <div key={marker.id} className="marker-item" onClick={() => {
+                  setEditingMarker(marker);
+                  setMapCenter([marker.lat, marker.lng]);
+                  if (mapRef.current) {
+                    mapRef.current.flyTo([marker.lat, marker.lng], 8);
+                  }
+                }}>
+                  <div className="marker-status" style={{
+                    backgroundColor: marker.status === 'completed' ? '#4CAF50' : 
+                                  marker.status === 'present' ? '#FFC107' : '#F44336'
+                  }}></div>
+                  <div className="marker-content">
+                    <strong>{marker.content}</strong>
+                    <small>{marker.lat.toFixed(4)}, {marker.lng.toFixed(4)}</small>
+                    <span className="marker-category">{getCategoryIcon(marker.category)}</span>
+                  </div>
+                  <button 
+                    className="delete-marker"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteMarker(marker.id);
+                    }}
+                  >
+                    🗑️
+                  </button>
                 </div>
               ))}
             </div>
-          </DragDropContext>
-        </div>
-      ) : (
-        <div className="dream-map-container">
-          <div className="map-controls">
-            <div className="marker-form">
-              <h3>Add Map Marker</h3>
-              <input
-                type="text"
-                placeholder="Dream location description"
-                value={newMarker.content}
-                onChange={(e) => setNewMarker({...newMarker, content: e.target.value})}
-              />
-              <select
-                value={newMarker.status}
-                onChange={(e) => setNewMarker({...newMarker, status: e.target.value})}
-              >
-                <option value="future">Future (Red)</option>
-                <option value="present">In Progress (Yellow)</option>
-                <option value="completed">Completed (Green)</option>
-              </select>
-              <select
-                value={newMarker.category}
-                onChange={(e) => setNewMarker({...newMarker, category: e.target.value})}
-              >
-                <option value="freedom">Freedom</option>
-                <option value="love">Love</option>
-                <option value="art">Art</option>
-              </select>
-              <p className="hint">Manualy change the json file in text to make the dots / descriptions, the noraml adding doest work right now</p>
-            </div>
-
-            <div className="marker-list">
-              <h3>Your Dream Locations</h3>
-              <div className="marker-items">
-                {markers.map(marker => (
-                  <div key={marker.id} className="marker-item" onClick={() => {
-                    setEditingMarker(marker);
-                    setMapCenter([marker.lat, marker.lng]);
-                    if (mapRef.current) {
-                      mapRef.current.flyTo([marker.lat, marker.lng], 8);
-                    }
-                  }}>
-                    <div className="marker-status" style={{
-                      backgroundColor: marker.status === 'completed' ? 'green' : 
-                                    marker.status === 'present' ? 'gold' : 'red'
-                    }}></div>
-                    <div className="marker-content">
-                      <strong>{marker.content}</strong>
-                      <small>{marker.lat.toFixed(4)}, {marker.lng.toFixed(4)}</small>
-                      <span className="marker-category">{getCategoryIcon(marker.category)}</span>
-                    </div>
-                    <button 
-                      className="delete-marker"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteMarker(marker.id);
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
+        </div>
 
+        <div className={`map-container ${isAddingMarker ? 'adding-marker' : ''}`}>
+          {isAddingMarker && (
+            <div className="map-overlay-message">
+              Click anywhere on the map to place your marker
+            </div>
+          )}
           <MapContainer 
             center={mapCenter} 
             zoom={3} 
-            style={{ height: '70vh', width: '100%' }}
+            style={{ height: '500px', width: '100%' }}
             ref={mapRef}
-            onClick={handleMapClick}
+
           >
+
+
+            
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
+
+                         <AddMarkerOnClick 
+                isAddingMarker={isAddingMarker} 
+                newMarker={newMarker} 
+                addMarker={addMarker} 
+              />
             
             {markers.map(marker => (
               <Marker 
@@ -543,20 +589,18 @@ const Dreams = () => {
                 }}
               >
                 <Popup>
-                  <div className="marker-popup">
-                    <h4>{marker.content}</h4>
-                    <p>Status: {marker.status}</p>
-                    <p>Category: {marker.category} {getCategoryIcon(marker.category)}</p>
-                    <button onClick={() => {
-                      setEditingMarker(marker);
-                    }}>Edit</button>
-                  </div>
-                </Popup>
+        <div className="marker-popup">
+          <h4>{marker.content}</h4>
+          <p>Status: {marker.status}</p>
+          <p>Category: {marker.category} {getCategoryIcon(marker.category)}</p>
+          <button onClick={() => setEditingMarker(marker)}>Edit</button>
+        </div>
+      </Popup>
               </Marker>
             ))}
           </MapContainer>
         </div>
-      )}
+      </div>
 
       {/* Edit Dream Modal */}
       {editingDream && (
