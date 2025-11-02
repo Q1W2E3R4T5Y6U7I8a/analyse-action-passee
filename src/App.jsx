@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DailyEntry from './components/DailyEntry';
-import GoalTracker from './components/GoalTracker';
+import Calendar from './components/Calendar';
 import Statistics from './components/Statistics';
 import './App.scss';
 import Dreams from './components/Dreams'; 
@@ -17,15 +17,15 @@ function App() {
             onClick={() => setPage('daily')}
             className={`nav-button ${page === 'daily' ? 'active' : ''}`}
           >
-            <span className="nav-icon">📅</span>
+            <span className="nav-icon">✍️</span>
             <span className="nav-text">Daily Journal</span>
           </button>
           <button 
             onClick={() => setPage('goals')}
             className={`nav-button ${page === 'goals' ? 'active' : ''}`}
           >
-            <span className="nav-icon">🎯</span>
-            <span className="nav-text">Goals</span>
+            <span className="nav-icon">📅</span>
+            <span className="nav-text">Calendar</span>
           </button>
           <button 
             onClick={() => setPage('stats')}
@@ -39,7 +39,7 @@ function App() {
             className={`nav-button ${page === 'dreams' ? 'active' : ''}`}
           >
             <span className="nav-icon">✨</span>
-            <span className="nav-text">Dreams</span>
+            <span className="nav-text">Goals/Achivements/Dreams</span>
           </button>
           
           <button
@@ -72,7 +72,7 @@ function App() {
       <main className="main-content">
         {page === 'dreams' && <Dreams />}
         {page === 'daily' && <DailyEntry />}
-        {page === 'goals' && <GoalTracker />}
+        {page === 'goals' && <Calendar />}
         {page === 'stats' && <Statistics />}
         {page === 'constitution' && <Constitution />}
 

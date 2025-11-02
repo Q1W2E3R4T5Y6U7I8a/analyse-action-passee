@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, isToday, isPast, isFuture } from 'date-fns';
-import './GoalTracker.scss';
+import './Calendar.scss';
 
-export default function GoalTracker() {
+export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [goals, setGoals] = useState(() => {
     const saved = localStorage.getItem('calendar-goals');
