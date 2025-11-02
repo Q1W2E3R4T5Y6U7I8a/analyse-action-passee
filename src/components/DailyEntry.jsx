@@ -182,33 +182,33 @@ export default function DailyEntry() {
   const [meditationTrack, setMeditationTrack] = useState(null);
   const [isMeditationPlaying, setIsMeditationPlaying] = useState(false);
 
-  const meditationTracks = [
-    {
-      id: 1,
-      title: "Blue eyed",
-      url: "https://www.youtube.com/embed/_x7TrTX2kXU?autoplay=1"
-    },
-    {
-      id: 2,
-      title: "Last Agni Kai", 
-      url: "https://www.youtube.com/embed/k_P6Xjx9Tnk?autoplay=1"
-    },
-    {
-      id: 3,
-      title: "Tibetian bowl", 
-      url: "https://www.youtube.com/embed/gbSeNYzYCiA?autoplay=1"
-    },
-    {
-      id: 4,
-      title: "Last of us", 
-      url: "https://www.youtube.com/embed/DvNF51-TSAQ?autoplay=1"
-    },
-    {
-      id: 5,
-      title: "Space rangers", 
-      url: "https://www.youtube.com/embed/UVEDaZ4pzoM?autoplay=1"
-    }
-  ];
+const meditationTracks = [
+  {
+    id: 1,
+    title: "Blue eyed",
+    url: "https://www.youtube.com/embed/_x7TrTX2kXU?autoplay=1"
+  },
+  {
+    id: 2,
+    title: "Last Agni Kai", 
+    url: "https://www.youtube.com/embed/k_P6Xjx9Tnk?autoplay=1"
+  },
+  {
+    id: 3,
+    title: "Tibetian bowl", 
+    url: "https://www.youtube.com/embed/gbSeNYzYCiA?autoplay=1"
+  },
+  {
+    id: 4,
+    title: "Last of us", 
+    url: "https://www.youtube.com/embed/DvNF51-TSAQ?autoplay=1"
+  },
+  {
+    id: 5,
+    title: "Space rangers", 
+    url: "https://www.youtube.com/embed/UVEDaZ4pzoM?autoplay=1"
+  }
+];
 
   const tracks = [
     "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_1.mp3",
