@@ -128,7 +128,7 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus }) 
   const handleCompositionStart = () => {
     isComposingRef.current = true;
   };
-
+  
   const handleCompositionEnd = (e) => {
     isComposingRef.current = false;
     onChange(e.currentTarget.innerHTML);
@@ -401,7 +401,7 @@ const meditationTracks = [
     setIsPomodoroActive(false);
     document.title = 'Daily Entry';
 
-    const pomodoroUnits = pomodoroDuration / 45;
+    const pomodoroUnits = pomodoroDuration / 60;
 
     setEntry(prev => ({
       ...prev,
@@ -631,7 +631,7 @@ const meditationTracks = [
                   cursor: 'pointer'
                 }}
               >
-                30m (0.66)
+                30m (0.5)
               </button>
               <button 
                 onClick={() => startPomodoro(45)} 
@@ -646,7 +646,7 @@ const meditationTracks = [
                   cursor: 'pointer'
                 }}
               >
-                45m (1.00)
+                45m (0.75)
               </button>
               <button 
                 onClick={() => startPomodoro(60)} 
@@ -661,7 +661,7 @@ const meditationTracks = [
                   cursor: 'pointer'
                 }}
               >
-                60m (1.33)
+                60m (1)
               </button>
             </div>
           </div>
@@ -750,7 +750,7 @@ const meditationTracks = [
                     className="pomodoros-input"
                   />
                   <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                    (45min = 1 pomodoro)
+                    (60min = 1 pomodoro)
                   </div>
                 </div>
               </div>
