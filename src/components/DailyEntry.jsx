@@ -609,11 +609,11 @@ const meditationTracks = [
                   fontSize: '16px'
                 }}
               >
-                Start {pomodoroDuration}m Pomodoro
+                Start {pomodoroDuration}m
               </button>
             </div>
             <div style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
-              {pomodoroDuration}min = {(pomodoroDuration / 45).toFixed(2)} pomodoro(s)
+              {pomodoroDuration}min = {(pomodoroDuration / 60).toFixed(2)} pomodoro(s)
             </div>
             
             {/* Boutons rapides */}
@@ -631,7 +631,7 @@ const meditationTracks = [
                   cursor: 'pointer'
                 }}
               >
-                30m (0.5)
+                30m
               </button>
               <button 
                 onClick={() => startPomodoro(45)} 
@@ -646,7 +646,7 @@ const meditationTracks = [
                   cursor: 'pointer'
                 }}
               >
-                45m (0.75)
+                45m
               </button>
               <button 
                 onClick={() => startPomodoro(60)} 
@@ -661,7 +661,7 @@ const meditationTracks = [
                   cursor: 'pointer'
                 }}
               >
-                60m (1)
+                60m
               </button>
             </div>
           </div>
