@@ -1,8 +1,44 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import "./Constitution.scss";
 
+// Default constitution data
+const defaultConstitution = {
+  "header": "Default Constitution - Modify me!",
+  "sections": [
+    {
+      "element": "air",
+      "title": "Air Element",
+      "icon": "fas fa-wind",
+      "principles": [
+        "1. This is default air principle 1",
+        "1.1 Default air principle 1.1",
+        "1.2 Default air principle 1.2"
+      ]
+    },
+    {
+      "element": "fire",
+      "title": "Fire Element",
+      "icon": "fas fa-fire",
+      "principles": [
+        "2. This is default fire principle 1",
+        "2.1 Default fire principle 2.1"
+      ]
+    }
+  ]
+};
+
+// localStorage key
+const CONSTITUTION_STORAGE_KEY = 'constitution-data';
+
 function Constitution() {
+  const [constitutionData, setConstitutionData] = useState(null);
+  const [showJsonEditor, setShowJsonEditor] = useState(false);
+  const [jsonText, setJsonText] = useState('');
+
   useEffect(() => {
+    // Load constitution data on component mount
+    loadConstitutionData();
+    
     const sections = document.querySelectorAll(".element-section");
     sections.forEach((section, index) => {
       setTimeout(() => {
@@ -21,105 +57,199 @@ function Constitution() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Save constitution data to localStorage
+  const saveConstitutionToStorage = (data) => {
+    try {
+      localStorage.setItem(CONSTITUTION_STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving constitution to localStorage:', error);
+    }
+  };
+
+  // Load constitution data from localStorage
+  const loadConstitutionFromStorage = () => {
+    try {
+      const stored = localStorage.getItem(CONSTITUTION_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('Error loading constitution from localStorage:', error);
+      return null;
+    }
+  };
+
+  // Load constitution data (priority: localStorage -> JSON file -> default)
+  const loadConstitutionData = async () => {
+    // First try to load from localStorage
+    const storedData = loadConstitutionFromStorage();
+    if (storedData) {
+      setConstitutionData(storedData);
+      return;
+    }
+
+    // If no localStorage data, try to load from JSON file
+    try {
+      const response = await fetch('/constitution.json');
+      if (response.ok) {
+        const data = await response.json();
+        setConstitutionData(data);
+        // Also save the loaded JSON data to localStorage for persistence
+        saveConstitutionToStorage(data);
+      } else {
+        // If file doesn't exist, use default data
+        setConstitutionData(defaultConstitution);
+        saveConstitutionToStorage(defaultConstitution);
+      }
+    } catch (error) {
+      console.error('Error loading constitution data:', error);
+      // Use default data as fallback
+      setConstitutionData(defaultConstitution);
+      saveConstitutionToStorage(defaultConstitution);
+    }
+  };
+
+  // Update constitution data and persist to localStorage
+  const updateConstitutionData = (newData) => {
+    setConstitutionData(newData);
+    saveConstitutionToStorage(newData);
+  };
+
+  // Export constitution data as JSON file
+  const exportConstitution = () => {
+    const dataStr = JSON.stringify(constitutionData || defaultConstitution, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = 'constitution.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Import constitution data from file
+  const importConstitution = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        updateConstitutionData(data);
+        alert('Constitution imported successfully! Data will persist after refresh.');
+      } catch (error) {
+        alert('Error importing constitution: Invalid JSON file');
+        console.error('Error parsing JSON:', error);
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset input to allow importing same file again
+    event.target.value = '';
+  };
+
+  // Open JSON editor with current data
+  const openJsonEditor = () => {
+    setJsonText(JSON.stringify(constitutionData, null, 2));
+    setShowJsonEditor(true);
+  };
+
+  // Apply JSON changes
+  const applyJsonChanges = () => {
+    try {
+      const data = JSON.parse(jsonText);
+      updateConstitutionData(data);
+      setShowJsonEditor(false);
+      alert('JSON changes applied successfully!');
+    } catch (error) {
+      alert('Invalid JSON format. Please check your syntax.');
+      console.error('Error parsing JSON:', error);
+    }
+  };
+
+  // Close JSON editor without saving
+  const closeJsonEditor = () => {
+    setShowJsonEditor(false);
+    setJsonText('');
+  };
+
+  if (!constitutionData) {
+    return <div className="constitution loading">Loading Constitution...</div>;
+  }
+
   return (
     <div className="constitution">
-        <div className="header">
-        <p>{`Peur de perdre > paresse > motivation > discipline > obsession`}</p>
-        </div>
-
-      <div className="container">
-
-        {/* L’air */}
-        <section className="element-section air">
-          <div className="element-header">
-            <i className="fas fa-wind"></i>
-            <h2>L’air</h2>
-          </div>
-          <ul className="principle-list">
-            <li>1. Tu sais que tu ne sais rien.</li>
-            <li>1.1 Tu es déjà mort.</li>
-            <li>
-              1.2 Avant ta mort, t'attends l’infinité, je crois pas que je pourrais être “effacé” de ce monde.
-            </li>
-            <li>
-              1.3 C’est presque sûr que tu peux affecter cette infinité et qu’avant cette vie tu as eu aussi, qui tu es maintenant c’est pas seulement le decisions de ta vie correspondant.
-            </li>
-            <li>1.4 T’es responsable de ton destin.</li>
-            <li>
-              1.4.1 Ceci est le plus controversé, mais c’est sûr que je choisir à le croire.
-            </li>
-          </ul>
-        </section>
-
-        {/* Le feu */}
-        <section className="element-section fire">
-          <div className="element-header">
-            <i className="fas fa-fire"></i>
-            <h2>Le feu</h2>
-          </div>
-          <ul className="principle-list">
-            <li>2. L’amour est le plus important.</li>
-            <li>2.1 Ta fille Sophia, c’est à qui tu serves ta vie, jamais à toi-même.</li>
-            <li>2.2 Reste doux et attentive avec ta femme</li>
-            <li>
-              2.2.1 Il faut trouver le fille quel tu admirais, au moins elle doit avoir ton IQ et capacité de penser critiquement
-            </li>
-            <li>
-              2.2.2 Faire le mini contract avec ta femme et parle de tout que vous voulez come ceci{" "}
-              <a href="https://t.me/c/2993781062/10" target="_blank" rel="noopener noreferrer">
-                https://t.me/c/2993781062/10
-              </a>
-            </li>
-          </ul>
-        </section>
-
-        {/* La terre */}
-        <section className="element-section earth">
-          <div className="element-header">
-            <i className="fas fa-mountain"></i>
-            <h2>La terre</h2>
-          </div>
-          <ul className="principle-list">
-            <li>3. Tu es un homme, tu es responsable pour tout.</li>
-            <li>3.1 Tu dois obtenir liberté financière, sans ça presque rien ne compte pas.</li>
-            <li>3.2 Voix basse, tête calme, bouche silencieuse.</li>
-            <li>3.3 DUMY</li>
-            <li>3.3.1 DUMYKAVA</li>
-            <li>3.3.2 ENGLISH CLUB</li>
-            <li>3.3.3 TOP</li>
-            <li>3.4 Dans 23-28 ans, concentre-toi sur l’invisible que les autres ignorent.</li>
-            <li>3.4.1 Ils se focalisent trop sur le matériel et le résultat immédiat. Pense à long terme.</li>
-          </ul>
-        </section>
-
-        {/* L’eau */}
-        <section className="element-section water">
-          <div className="element-header">
-            <i className="fas fa-tint"></i>
-            <h2>L’eau</h2>
-          </div>
-          <ul className="principle-list">
-            <li>4. Aime toi-même et tes règles du jeu.</li>
-            <li>4.1 C'est toi qui a crée ce jeu et les règles</li>
-            <li>4.2 Tout est interconnecté</li>
-          </ul>
-        </section>
-
-        {/* Habitudes */}
-        <section className="element-section habits">
-          <div className="element-header">
-            <i className="fas fa-pray"></i>
-            <h2>Habitudes</h2>
-          </div>
-          <ul className="principle-list">
-            <li>5. Dire mercy à Dieu</li>
-          </ul>
-        </section>
+      <div className="header">
+        <p>{constitutionData.header}</p>
       </div>
 
-      <footer className="footer">
-        <p></p>
-      </footer>
+      {/* Import/Export Buttons */}
+      <div className="import-export-buttons">
+        <input
+          type="file"
+          id="import-file"
+          accept=".json"
+          onChange={importConstitution}
+          style={{ display: 'none' }}
+        />
+        <button 
+          className="import-btn"
+          onClick={() => document.getElementById('import-file').click()}
+        >
+          <i className="fas fa-file-import"></i> Import Constitution
+        </button>
+        <button className="export-btn" onClick={exportConstitution}>
+          <i className="fas fa-file-export"></i> Export Constitution
+        </button>
+        <button className="edit-json-btn" onClick={openJsonEditor}>
+          <i className="fas fa-code"></i> Edit JSON Directly
+        </button>
+      </div>
+
+      {/* JSON Editor Modal */}
+      {showJsonEditor && (
+        <div className="json-editor-modal">
+          <div className="json-editor-content">
+            <div className="json-editor-header">
+              <h3>Edit Constitution JSON</h3>
+              <button className="close-button" onClick={closeJsonEditor}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <textarea
+              value={jsonText}
+              onChange={(e) => setJsonText(e.target.value)}
+              className="json-textarea"
+              placeholder="Paste or edit your JSON here..."
+              spellCheck="false"
+            />
+            <div className="json-editor-buttons">
+              <button className="apply-btn" onClick={applyJsonChanges}>
+                <i className="fas fa-check"></i> Apply Changes
+              </button>
+              <button className="cancel-btn" onClick={closeJsonEditor}>
+                <i className="fas fa-times"></i> Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="container">
+        {constitutionData.sections.map((section, index) => (
+          <section key={section.element} className={`element-section ${section.element}`}>
+            <div className="element-header">
+              <i className={section.icon}></i>
+              <h2>{section.title}</h2>
+            </div>
+            <ul className="principle-list">
+              {section.principles.map((principle, idx) => (
+                <li key={idx}>{principle}</li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

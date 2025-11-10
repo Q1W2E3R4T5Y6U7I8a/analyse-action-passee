@@ -705,4 +705,114 @@ $shadow-color: rgba(0, 0, 0, 0.1);
 
 .new-row {
     grid-column: 1 / -1;
+  }// Enhanced todo cards with color support
+.todo-card {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
+  
+  // Color indicators
+  &[style*="background-color"] {
+    .todo-input {
+      background: rgba(255, 255, 255, 0.9);
+    }
+  }
+}
+
+// Meditation section updates
+.meditation-section {
+  .meditation-controls {
+    .meditation-button {
+      &.active {
+        background: #3b82f6;
+        color: white;
+        transform: scale(1.05);
+      }
+      
+      // Special style for fireplace button
+      &:first-child {
+        background: linear-gradient(135deg, #ef4444, #f59e0b);
+        color: white;
+        font-weight: 600;
+        border: 2px solid #dc2626;
+        
+        &.active {
+          background: linear-gradient(135deg, #dc2626, #ea580c);
+          box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+      }
+    }
+  }
+}
+
+// Color hints in placeholder
+.todo-input::placeholder {
+  color: #6b7280;
+  font-size: 0.9em;
+}
+
+// Make colored todos stand out
+.todo-card[style*="background-color"] {
+  border-radius: 8px;
+  margin: 2px 0;
+  
+  .todo-checkbox {
+    transform: scale(1.1);
+  }
+}// Enhanced todo cards with color support
+.todo-card {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  // Color indicators
+  &[style*="background-color"] {
+    .todo-input .editor-content {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 4px;
+      padding: 4px;
+    }
+  }
+}
+
+// Meditation section updates
+.meditation-section {
+  .meditation-controls {
+    .meditation-button {
+      &.active {
+        background: #3b82f6;
+        color: white;
+        transform: scale(1.05);
+      }
+      
+      // Special style for fireplace button
+      &.fireplace-button {
+        background: linear-gradient(135deg, #ef4444, #f59e0b);
+        color: white;
+        font-weight: 600;
+        border: 2px solid #dc2626;
+        
+        &.active {
+          background: linear-gradient(135deg, #dc2626, #ea580c);
+          box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+      }
+    }
+  }
+}
+
+// Make colored todos stand out
+.todo-card[style*="background-color"] {
+  border-radius: 8px;
+  margin: 2px 0;
+  
+  .todo-checkbox {
+    transform: scale(1.1);
+  }
+}

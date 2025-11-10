@@ -53,7 +53,7 @@ const initialState = {
   mostImportantTask: ''
 };
 
-const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus }) => {
+const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus, onColorDetect }) => {
   const textareaRef = useRef(null);
   
   const adjustHeight = useCallback(() => {
@@ -70,8 +70,41 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus
     }
   }, [adjustHeight, autoFocus]);
 
+  // Color detection function
+  const detectColors = (text) => {
+    const colorMap = {
+      '#red': '#ef4444',
+      '#green': '#10b981', 
+      '#blue': '#3b82f6',
+      '#yellow': '#f59e0b',
+      '#purple': '#8b5cf6',
+      '#pink': '#ec4899',
+      '#orange': '#f97316',
+      '#gray': '#6b7280',
+      '#black': '#000000',
+      '#white': '#ffffff'
+    };
+
+    const foundColors = [];
+    for (const [colorCode, hexValue] of Object.entries(colorMap)) {
+      if (text.includes(colorCode)) {
+        foundColors.push(hexValue);
+      }
+    }
+    
+    return foundColors;
+  };
+
   const handleChange = (e) => {
-    onChange(e.target.value);
+    const newValue = e.target.value;
+    onChange(newValue);
+    
+    // Detect colors and notify parent
+    if (onColorDetect) {
+      const colors = detectColors(newValue);
+      onColorDetect(colors);
+    }
+    
     adjustHeight();
   };
 
@@ -87,28 +120,51 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus
   );
 };
 
-const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus }) => {
+const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, onColorDetect }) => {
   const editorRef = useRef(null);
   const isComposingRef = useRef(false);
+
+  // Color detection function (same as in AutoResizeTextarea)
+  const detectColors = (text) => {
+    const colorMap = {
+      '#red': '#ef4444',
+      '#green': '#10b981', 
+      '#blue': '#3b82f6',
+      '#yellow': '#f59e0b',
+      '#purple': '#8b5cf6',
+      '#pink': '#ec4899',
+      '#orange': '#f97316',
+      '#gray': '#6b7280',
+      '#black': '#000000',
+      '#white': '#ffffff'
+    };
+
+    const foundColors = [];
+    for (const [colorCode, hexValue] of Object.entries(colorMap)) {
+      if (text.includes(colorCode)) {
+        foundColors.push(hexValue);
+      }
+    }
+    
+    return foundColors;
+  };
 
   const setCaretToEnd = (el) => {
     el.focus();
     const range = document.createRange();
     const sel = window.getSelection();
     range.selectNodeContents(el);
-    range.collapse(false); // move caret to end
+    range.collapse(false);
     sel.removeAllRanges();
     sel.addRange(range);
   };
 
-  // Only update innerHTML if value is different from current content
   useEffect(() => {
     const el = editorRef.current;
     if (!el || isComposingRef.current) return;
 
     if (el.innerHTML !== value) {
       el.innerHTML = value || '';
-      // Use requestAnimationFrame to ensure cursor moves after DOM update
       requestAnimationFrame(() => setCaretToEnd(el));
     }
   }, [value]);
@@ -121,7 +177,14 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus }) 
 
   const handleInput = (e) => {
     if (!isComposingRef.current) {
-      onChange(e.currentTarget.innerHTML);
+      const newValue = e.currentTarget.innerHTML;
+      onChange(newValue);
+      
+      // Detect colors and notify parent
+      if (onColorDetect) {
+        const colors = detectColors(newValue);
+        onColorDetect(colors);
+      }
     }
   };
 
@@ -131,13 +194,28 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus }) 
   
   const handleCompositionEnd = (e) => {
     isComposingRef.current = false;
-    onChange(e.currentTarget.innerHTML);
+    const newValue = e.currentTarget.innerHTML;
+    onChange(newValue);
+    
+    // Detect colors and notify parent
+    if (onColorDetect) {
+      const colors = detectColors(newValue);
+      onColorDetect(colors);
+    }
   };
 
   const applyFormat = (command, value = null) => {
     document.execCommand(command, false, value);
     requestAnimationFrame(() => {
-      onChange(editorRef.current.innerHTML);
+      const newValue = editorRef.current.innerHTML;
+      onChange(newValue);
+      
+      // Detect colors and notify parent
+      if (onColorDetect) {
+        const colors = detectColors(newValue);
+        onColorDetect(colors);
+      }
+      
       setCaretToEnd(editorRef.current);
     });
   };
@@ -184,6 +262,11 @@ export default function DailyEntry() {
 
 const meditationTracks = [
   {
+    id: 0, 
+    title: "🔥 10h Fireplace",
+    url: "https://www.youtube.com/embed/L_LUpnjgPso?autoplay=1"
+  },
+  {
     id: 1,
     title: "Blue eyed",
     url: "https://www.youtube.com/embed/_x7TrTX2kXU?autoplay=1"
@@ -207,7 +290,17 @@ const meditationTracks = [
     id: 5,
     title: "Space rangers", 
     url: "https://www.youtube.com/embed/UVEDaZ4pzoM?autoplay=1"
-  }
+  },
+  {
+    id: 6,
+    title: "Gibran Alcocer", 
+    url: "https://www.youtube.com/embed/GNJE__4ZtvE?autoplay=1"  // FIXED: changed to embed URL
+  },
+  {
+    id: 7,
+    title: "Eunaudi", 
+    url: "https://www.youtube.com/embed/sewUDjJXMfs?start=614&autoplay=1"  // FIXED: changed to embed URL with start time
+  },
 ];
 
   const tracks = [
@@ -458,14 +551,19 @@ const meditationTracks = [
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleTodoChange = (id, key, value) => {
-    setEntry(prev => ({
-      ...prev,
-      todos: prev.todos.map(todo => 
-        todo.id === id ? { ...todo, [key]: value } : todo
-      )
-    }));
-  };
+const handleTodoChange = (id, key, value, colors = []) => {
+  setEntry(prev => ({
+    ...prev,
+    todos: prev.todos.map(todo => 
+      todo.id === id ? { 
+        ...todo, 
+        [key]: value,
+        // Store the first detected color, or keep existing if no new color
+        color: colors.length > 0 ? colors[0] : todo.color 
+      } : todo
+    )
+  }));
+};
 
   const addNewTodo = () => {
     const newId = Date.now();
@@ -761,7 +859,12 @@ const meditationTracks = [
               <h3 className="section-subtitle">Daily Tasks</h3>
               <div className="todos-grid">
                 {entry.todos.map((todo, index) => (
-                  <div key={todo.id} className={`todo-card ${todo.completed ? 'completed' : ''}`}>
+                  <div key={todo.id} className={`todo-card ${todo.completed ? 'completed' : ''}`}
+                    style={{
+                      backgroundColor: todo.color || '',
+                      borderLeft: todo.color ? `4px solid ${todo.color}` : 'none'
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={todo.completed || false}
@@ -771,7 +874,8 @@ const meditationTracks = [
                     <RichTextEditor
                       value={todo.text || ''}
                       onChange={(value) => handleTodoChange(todo.id, 'text', value)}
-                      placeholder="Enter a task..."
+                      onColorDetect={(colors) => handleTodoChange(todo.id, 'text', todo.text, colors)}
+                      placeholder="Enter a task... (use #red, #green, #blue, etc.)"
                       className="todo-input"
                       autoFocus={todo.id === newTodoId}
                     />
@@ -928,7 +1032,9 @@ const meditationTracks = [
               <button
                 key={track.id}
                 onClick={() => startMeditation(track)}
-                className={`meditation-button ${meditationTrack?.id === track.id ? 'active' : ''}`}
+                className={`meditation-button ${meditationTrack?.id === track.id ? 'active' : ''} ${
+                  track.id === 0 ? 'fireplace-button' : ''
+                }`}
               >
                 {track.title}
               </button>
@@ -937,6 +1043,10 @@ const meditationTracks = [
               <button
                 onClick={stopMeditation}
                 className="stop-meditation-button"
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: 'white'
+                }}
               >
                 Stop Meditation
               </button>
