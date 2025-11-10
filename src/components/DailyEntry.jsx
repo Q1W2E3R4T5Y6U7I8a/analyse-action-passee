@@ -123,7 +123,6 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus
 const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, onColorDetect }) => {
   const editorRef = useRef(null);
   const isComposingRef = useRef(false);
-  const lastValueRef = useRef(''); // Track the last value to prevent unnecessary updates
 
   // Color detection function
   const detectColors = (text) => {
@@ -160,15 +159,14 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
     sel.addRange(range);
   };
 
+  // Initialize content when component mounts or value changes
   useEffect(() => {
     const el = editorRef.current;
-    if (!el || isComposingRef.current) return;
+    if (!el) return;
 
-    // Only update if the value is different from current content AND different from last value
-    const currentContent = el.innerHTML;
-    if (currentContent !== value && lastValueRef.current !== value) {
+    // Only update if the content is different
+    if (el.innerHTML !== value) {
       el.innerHTML = value || '';
-      lastValueRef.current = value;
     }
   }, [value]);
 
@@ -181,7 +179,6 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
   const handleInput = (e) => {
     if (!isComposingRef.current) {
       const newValue = e.currentTarget.innerHTML;
-      lastValueRef.current = newValue; // Update last value
       onChange(newValue);
       
       // Detect colors and notify parent
@@ -199,7 +196,6 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
   const handleCompositionEnd = (e) => {
     isComposingRef.current = false;
     const newValue = e.currentTarget.innerHTML;
-    lastValueRef.current = newValue; // Update last value
     onChange(newValue);
     
     // Detect colors and notify parent
@@ -211,19 +207,17 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
 
   const applyFormat = (command, value = null) => {
     document.execCommand(command, false, value);
-    requestAnimationFrame(() => {
-      const newValue = editorRef.current.innerHTML;
-      lastValueRef.current = newValue; // Update last value
-      onChange(newValue);
-      
-      // Detect colors and notify parent
-      if (onColorDetect) {
-        const colors = detectColors(newValue);
-        onColorDetect(colors);
-      }
-      
-      setCaretToEnd(editorRef.current);
-    });
+    // Trigger input event to update parent
+    const newValue = editorRef.current.innerHTML;
+    onChange(newValue);
+    
+    // Detect colors and notify parent
+    if (onColorDetect) {
+      const colors = detectColors(newValue);
+      onColorDetect(colors);
+    }
+    
+    setCaretToEnd(editorRef.current);
   };
 
   return (
@@ -317,95 +311,105 @@ const meditationTracks = [
     "https://github.com/Q1W2E3R4T5Y6U7I8a/analyse-action-passee/raw/main/public/timer_music_5.mp3"
   ];
 
-  const changeDateBy = useCallback((days) => {
-    const parsedDate = parse(entry.date, 'dd/MM/yyyy', new Date());
-    const newDate = format(addDays(parsedDate, days), 'dd/MM/yyyy');
+const changeDateBy = useCallback((days) => {
+  const parsedDate = parse(entry.date, 'dd/MM/yyyy', new Date());
+  const newDate = format(addDays(parsedDate, days), 'dd/MM/yyyy');
 
-    const prevEntry = history.find(e => e.date === entry.date);
-    const found = history.find(e => e.date === newDate);
+  const prevEntry = history.find(e => e.date === entry.date);
+  const found = history.find(e => e.date === newDate);
 
-    const copiedHabits = prevEntry?.habits?.map(h => ({
-      ...h,
-      completedByDate: {
-        ...h.completedByDate,
-        [newDate]: h.completedByDate?.[newDate] ?? false
+  const copiedHabits = prevEntry?.habits?.map(h => ({
+    ...h,
+    completedByDate: {
+      ...h.completedByDate,
+      [newDate]: h.completedByDate?.[newDate] ?? false
+    }
+  })) || [];
+
+  // FIX: Always use the todos from the found entry or previous entry
+  const copiedTodos = found?.todos || prevEntry?.todos || initialState.todos;
+
+  setEntry(found
+    ? {
+        ...found,
+        habits: copiedHabits.length ? copiedHabits : found.habits || [],
+        todos: copiedTodos, // FIX: Use the proper todos
+        mostImportantTask: found.mostImportantTask ?? prevEntry?.mostImportantTask ?? ''
       }
-    })) || [];
-
-    const copiedTodos = prevEntry?.todos || initialState.todos;
-
-    setEntry(found
-      ? {
-          ...found,
-          habits: copiedHabits.length ? copiedHabits : found.habits || [],
-          todos: found.todos || copiedTodos,
-          mostImportantTask: found.mostImportantTask ?? prevEntry?.mostImportantTask ?? ''
-        }
-      : {
-          ...initialState,
-          date: newDate,
-          habits: copiedHabits,
-          todos: copiedTodos,
-          mostImportantTask: prevEntry?.mostImportantTask ?? ''
-        }
-    );
-  }, [entry.date, history]);
+    : {
+        ...initialState,
+        date: newDate,
+        habits: copiedHabits,
+        todos: copiedTodos, // FIX: Use the proper todos
+        mostImportantTask: prevEntry?.mostImportantTask ?? ''
+      }
+  );
+}, [entry.date, history]);
 
   // Auto-save whenever entry changes
-  useEffect(() => {
-    const saveTimer = setTimeout(() => {
-      if (entry.date) {
-        const existingIndex = history.findIndex(e => e.date === entry.date);
-        const updated = [...history];
-        
-        if (existingIndex >= 0) {
-          updated[existingIndex] = entry;
-        } else {
-          updated.push(entry);
-        }
-        
-        saveData(updated);
-        setHistory(updated);
+useEffect(() => {
+  const saveTimer = setTimeout(() => {
+    if (entry.date) {
+      const existingIndex = history.findIndex(e => e.date === entry.date);
+      const updated = [...history];
+      
+      if (existingIndex >= 0) {
+        updated[existingIndex] = entry;
+      } else {
+        updated.push(entry);
       }
-    }, 500);
-    
-    return () => clearTimeout(saveTimer);
-  }, [entry, history]);
+      
+      saveData(updated);
+      setHistory(updated);
+    }
+  }, 500);
+  
+  return () => clearTimeout(saveTimer);
+}, [entry]);
 
   // Load saved data
-  useEffect(() => {
-    const saved = loadData();
-    setHistory(saved || []);
+// Load saved data
+useEffect(() => {
+  const saved = loadData();
+  setHistory(saved || []);
 
-    const prevDate = format(subDays(new Date(), 1), 'dd/MM/yyyy');
-    const prevEntry = saved?.find(e => e.date === prevDate);
-    const todayEntry = saved?.find(e => e.date === format(new Date(), 'dd/MM/yyyy'));
+  const today = format(new Date(), 'dd/MM/yyyy');
+  const prevDate = format(subDays(new Date(), 1), 'dd/MM/yyyy');
+  const prevEntry = saved?.find(e => e.date === prevDate);
+  const todayEntry = saved?.find(e => e.date === today);
 
-    if (todayEntry) {
-      setEntry(todayEntry);
-    } else if (prevEntry) {
-      setEntry({
-        ...initialState,
-        date: format(new Date(), 'dd/MM/yyyy'),
-        efficiency: prevEntry.efficiency,
-        productivity: prevEntry.productivity,
-        happiness: prevEntry.happiness,
-        energy: { ...prevEntry.energy },
-        victory: prevEntry.victory || '',
-        loss: prevEntry.loss || '',
-        insight: prevEntry.insight || '',
-        pomodorosHistory: prevEntry.pomodorosHistory || initialState.pomodorosHistory,
-        habits: prevEntry.habits?.map(h => ({
-          ...h,
-          completedByDate: {
-            ...h.completedByDate,
-            [format(new Date(), 'dd/MM/yyyy')]: false
-          }
-        })) || initialState.habits,
-        todos: prevEntry.todos || initialState.todos
-      });
-    }
-  }, []);
+  if (todayEntry) {
+    setEntry(todayEntry);
+  } else if (prevEntry) {
+    setEntry({
+      ...initialState,
+      date: today,
+      efficiency: prevEntry.efficiency,
+      productivity: prevEntry.productivity,
+      happiness: prevEntry.happiness,
+      energy: { ...prevEntry.energy },
+      victory: prevEntry.victory || '',
+      loss: prevEntry.loss || '',
+      insight: prevEntry.insight || '',
+      pomodorosHistory: prevEntry.pomodorosHistory || initialState.pomodorosHistory,
+      habits: prevEntry.habits?.map(h => ({
+        ...h,
+        completedByDate: {
+          ...h.completedByDate,
+          [today]: false
+        }
+      })) || initialState.habits,
+      todos: prevEntry.todos || initialState.todos, // FIX: Ensure todos are carried over
+      mostImportantTask: prevEntry.mostImportantTask || ''
+    });
+  } else {
+    // If no previous entry exists, use today's date with initial state
+    setEntry({
+      ...initialState,
+      date: today
+    });
+  }
+}, []);
 
   // Timer effect unifié - FIXED: Play sound even when tab is not active
   useEffect(() => {
@@ -564,8 +568,8 @@ const handleTodoChange = (id, key, value, colors = []) => {
       todo.id === id ? { 
         ...todo, 
         [key]: value,
-        // Store the first detected color, or keep existing if no new color
-        color: colors.length > 0 ? colors[0] : todo.color 
+        // Only update color if colors are detected, otherwise keep existing color
+        ...(colors.length > 0 && { color: colors[0] })
       } : todo
     )
   }));
@@ -863,62 +867,72 @@ const handleTodoChange = (id, key, value, colors = []) => {
             {/* Colonne 3: Todos */}
             <div className="section-box todos-section">
               <h3 className="section-subtitle">Daily Tasks</h3>
-              <div className="todos-grid">
-                {entry.todos.map((todo, index) => (
-                  <div key={todo.id} className={`todo-card ${todo.completed ? 'completed' : ''}`}
-                    style={{
-                      backgroundColor: todo.color || '',
-                      borderLeft: todo.color ? `4px solid ${todo.color}` : 'none'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={todo.completed || false}
-                      onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
-                      className="todo-checkbox"
-                    />
-                    <RichTextEditor
-                      value={todo.text || ''}
-                      onChange={(value) => handleTodoChange(todo.id, 'text', value)}
-                      onColorDetect={(colors) => handleTodoChange(todo.id, 'text', todo.text, colors)}
-                      placeholder="Enter a task... (use #red, #green, #blue, etc.)"
-                      className="todo-input"
-                      autoFocus={todo.id === newTodoId}
-                    />
-                    <div className="todo-priority-buttons">
-                      <button 
-                        onClick={() => moveTodo(todo.id, 'up')}
-                        disabled={index === 0}
-                        className="priority-button"
-                      >
-                        ↑
-                      </button>
-                      <button 
-                        onClick={() => moveTodo(todo.id, 'down')}
-                        disabled={index === entry.todos.length - 1}
-                        className="priority-button"
-                      >
-                        ↓
-                      </button>
-                    </div>
-                    <button 
-                      className="delete-todo"
-                      onClick={() => deleteTodo(todo.id)}
-                    >
-                      ×
-                    </button>
-                    {todo.completed && (
-                      <span className="completed-icon">✓</span>
-                    )}
-                  </div>
-                ))}
-                <button 
-                  className="add-todo-button"
-                  onClick={addNewTodo}
-                >
-                  + Add Task
-                </button>
-              </div>
+<div className="todos-grid">
+  {entry.todos.map((todo, index) => (
+    <div key={todo.id} className={`todo-card ${todo.completed ? 'completed' : ''}`}
+      style={{
+        backgroundColor: todo.color || '',
+        borderLeft: todo.color ? `4px solid ${todo.color}` : 'none'
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={todo.completed || false}
+        onChange={(e) => handleTodoChange(todo.id, 'completed', e.target.checked)}
+        className="todo-checkbox"
+      />
+      <RichTextEditor
+        value={todo.text || ''}
+        onChange={(value) => handleTodoChange(todo.id, 'text', value)}
+        onColorDetect={(colors) => {
+          // Only update the color, not the text
+          if (colors.length > 0) {
+            setEntry(prev => ({
+              ...prev,
+              todos: prev.todos.map(t => 
+                t.id === todo.id ? { ...t, color: colors[0] } : t
+              )
+            }));
+          }
+        }}
+        placeholder="Enter a task... (use #red, #green, #blue, etc.)"
+        className="todo-input"
+        autoFocus={todo.id === newTodoId}
+      />
+      <div className="todo-priority-buttons">
+        <button 
+          onClick={() => moveTodo(todo.id, 'up')}
+          disabled={index === 0}
+          className="priority-button"
+        >
+          ↑
+        </button>
+        <button 
+          onClick={() => moveTodo(todo.id, 'down')}
+          disabled={index === entry.todos.length - 1}
+          className="priority-button"
+        >
+          ↓
+        </button>
+      </div>
+      <button 
+        className="delete-todo"
+        onClick={() => deleteTodo(todo.id)}
+      >
+        ×
+      </button>
+      {todo.completed && (
+        <span className="completed-icon">✓</span>
+      )}
+    </div>
+  ))}
+  <button 
+    className="add-todo-button"
+    onClick={addNewTodo}
+  >
+    + Add Task
+  </button>
+</div>
             </div>
           </div>
 
