@@ -123,8 +123,9 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, autoFocus
 const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, onColorDetect }) => {
   const editorRef = useRef(null);
   const isComposingRef = useRef(false);
+  const lastValueRef = useRef(''); // Track the last value to prevent unnecessary updates
 
-  // Color detection function (same as in AutoResizeTextarea)
+  // Color detection function
   const detectColors = (text) => {
     const colorMap = {
       '#red': '#ef4444',
@@ -163,9 +164,11 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
     const el = editorRef.current;
     if (!el || isComposingRef.current) return;
 
-    if (el.innerHTML !== value) {
+    // Only update if the value is different from current content AND different from last value
+    const currentContent = el.innerHTML;
+    if (currentContent !== value && lastValueRef.current !== value) {
       el.innerHTML = value || '';
-      requestAnimationFrame(() => setCaretToEnd(el));
+      lastValueRef.current = value;
     }
   }, [value]);
 
@@ -178,6 +181,7 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
   const handleInput = (e) => {
     if (!isComposingRef.current) {
       const newValue = e.currentTarget.innerHTML;
+      lastValueRef.current = newValue; // Update last value
       onChange(newValue);
       
       // Detect colors and notify parent
@@ -195,6 +199,7 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
   const handleCompositionEnd = (e) => {
     isComposingRef.current = false;
     const newValue = e.currentTarget.innerHTML;
+    lastValueRef.current = newValue; // Update last value
     onChange(newValue);
     
     // Detect colors and notify parent
@@ -208,6 +213,7 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
     document.execCommand(command, false, value);
     requestAnimationFrame(() => {
       const newValue = editorRef.current.innerHTML;
+      lastValueRef.current = newValue; // Update last value
       onChange(newValue);
       
       // Detect colors and notify parent
@@ -236,11 +242,11 @@ const RichTextEditor = ({ value, onChange, placeholder, className, autoFocus, on
         placeholder={placeholder}
         className="editor-content"
         style={{ minHeight: '60px', width: '100%' }}
+        suppressContentEditableWarning={true}
       />
     </div>
   );
 };
-
 
 export default function DailyEntry() {
   const [entry, setEntry] = useState(initialState);
