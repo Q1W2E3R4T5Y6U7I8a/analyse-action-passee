@@ -298,8 +298,28 @@ const meditationTracks = [
   },
   {
     id: 7,
-    title: "Eunaudi", 
-    url: "https://www.youtube.com/embed/sewUDjJXMfs?start=614&autoplay=1"  // FIXED: changed to embed URL with start time
+    title: "Eunaudi",
+    url: "https://www.youtube.com/embed/sewUDjJXMfs?start=614&autoplay=1"
+  },
+  {
+    id: 8,
+    title: "Air",
+    url: "https://www.youtube.com/embed/UCct3UJxC_g"
+  },
+  {
+    id: 9,
+    title: "Water",
+    url: "https://www.youtube.com/embed/z53UdQf-YYo?start=209"
+  },
+  {
+    id: 10,
+    title: "Earth",
+    url: "https://www.youtube.com/embed/UVEDaZ4pzoM"
+  },
+  {
+    id: 11,
+    title: "Fire", 
+    url: "https://www.youtube.com/embed/qvZsPYOrmh0?start=240"  
   },
 ];
 
