@@ -248,6 +248,8 @@ export default function DailyEntry() {
   const [audio, setAudio] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [newTodoId, setNewTodoId] = useState(null);
+  const [fireplaceOn, setFireplaceOn] = useState(false);
+  const [currentMeditationTrack, setCurrentMeditationTrack] = useState(null);
 
   // États unifiés pour le Pomodoro
   const [isPomodoroActive, setIsPomodoroActive] = useState(false);
@@ -651,15 +653,13 @@ const handleTodoChange = (id, key, value, colors = []) => {
     }
   };
 
-  const startMeditation = (track) => {
-    setMeditationTrack(track);
-    setIsMeditationPlaying(true);
-  };
+const startMeditation = (track) => {
+  setCurrentMeditationTrack(track);
+};
 
-  const stopMeditation = () => {
-    setIsMeditationPlaying(false);
-    setMeditationTrack(null);
-  };
+const stopMeditation = () => {
+  setCurrentMeditationTrack(null);
+};
 
   return (
     <div className="daily-entry">
@@ -1062,51 +1062,106 @@ const handleTodoChange = (id, key, value, colors = []) => {
             </div>
           </div>
           </div>
-        </div>
 
-        {/* Section Méditation en bas */}
-        <div className="meditation-section">
-          <h3 className="section-subtitle">🧘 Meditation Time</h3>
-          <div className="meditation-controls">
-            {meditationTracks.map(track => (
-              <button
-                key={track.id}
-                onClick={() => startMeditation(track)}
-                className={`meditation-button ${meditationTrack?.id === track.id ? 'active' : ''} ${
-                  track.id === 0 ? 'fireplace-button' : ''
-                }`}
-              >
-                {track.title}
-              </button>
-            ))}
-            {isMeditationPlaying && (
-              <button
-                onClick={stopMeditation}
-                className="stop-meditation-button"
-                style={{
-                  backgroundColor: '#ef4444',
-                  color: 'white'
-                }}
-              >
-                Stop Meditation
-              </button>
-            )}
-          </div>
-          
-          {isMeditationPlaying && meditationTrack && (
-            <div className="meditation-player">
-              <iframe
-                width="100%"
-                height="315"
-                src={meditationTrack.url}
-                title={meditationTrack.title}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
-          )}
+<div className="meditation-section">
+  <h3 className="section-subtitle">🧘 Meditation & Ambiance</h3>
+  
+  <div className="meditation-grid">
+    {/* Section Cheminée - toujours disponible */}
+    <div className="fireplace-section">
+      <div className="section-header">
+        <h4>🔥 Cheminée </h4>
+        <button
+          onClick={() => {
+            if (fireplaceOn) {
+              setFireplaceOn(false);
+            } else {
+              setFireplaceOn(true);
+              // Si une autre méditation est en cours, on peut garder les deux
+            }
+          }}
+          className={`fireplace-toggle ${fireplaceOn ? 'active' : ''}`}
+        >
+          {fireplaceOn ? 'Éteindre' : 'Allumer'}
+        </button>
+      </div>
+      
+      {fireplaceOn && (
+        <div className="meditation-player fireplace-player">
+          <iframe
+            width="100%"
+            height="200"
+            src={meditationTracks[0].url}
+            title={meditationTracks[0].title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
         </div>
+      )}
+    </div>
+
+    {/* Section autres pistes de méditation */}
+    <div className="other-tracks-section">
+      <div className="section-header">
+        {currentMeditationTrack && (
+          <button
+            onClick={stopMeditation}
+            className="stop-meditation-button"
+          >
+            Arrêter
+          </button>
+        )}
+      </div>
+
+      <div className="tracks-grid">
+        {meditationTracks.slice(1).map(track => (
+          <button
+            key={track.id}
+            onClick={() => {
+              if (currentMeditationTrack?.id === track.id) {
+                stopMeditation();
+              } else {
+                startMeditation(track);
+              }
+            }}
+            className={`track-button ${currentMeditationTrack?.id === track.id ? 'active' : ''} ${
+              track.title.includes('Air') ? 'air' : 
+              track.title.includes('Water') ? 'water' :
+              track.title.includes('Earth') ? 'earth' :
+              track.title.includes('Fire') ? 'fire' : ''
+            }`}
+          >
+            <span className="track-emoji">
+              {track.title.includes('Air') ? '💨' : 
+               track.title.includes('Water') ? '💧' :
+               track.title.includes('Earth') ? '🌍' :
+               track.title.includes('Fire') ? '🔥' : '🎵'}
+            </span>
+            {track.title.replace('Air', '').replace('Water', '').replace('Earth', '').replace('Fire', '').trim()}
+          </button>
+        ))}
+      </div>
+      
+      {currentMeditationTrack && (
+        <div className="meditation-player">
+          <iframe
+            width="100%"
+            height="200"
+            src={currentMeditationTrack.url}
+            title={currentMeditationTrack.title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+
+</div>
       </div>
     </div>
   );
