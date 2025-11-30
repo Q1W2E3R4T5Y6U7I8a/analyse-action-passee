@@ -973,7 +973,7 @@ const stopMeditation = () => {
                   />
                 </div>
                 <div className="insight-card loss-card">
-                  <label className="input-label">💤 Dreams & Goals</label>
+                  <label className="input-label">💤 Dreams & What I feel</label>
                   <AutoResizeTextarea
                     value={entry.loss}
                     onChange={(value) => handleChange('loss', value)}
